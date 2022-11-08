@@ -1593,6 +1593,7 @@ The robust face recognition problem is given by
 where
 \end_layout
 
+\begin_deeper
 \begin_layout Itemize
 \begin_inset Formula $\lambda\in\mathbb{R}_{>0}$
 \end_inset
@@ -1764,5 +1765,27 @@ noprefix "false"
 ) represent the person the image belongs to.
 \end_layout
 
+\begin_layout Remark*
+When we consider images without noise, we have the optimization problem
+\begin_inset Formula 
+\[
+\min_{x\in\mathbb{R}^{m}}\frac{1}{2}\|Ax-b\|_{2}^{2}+\lambda\|x\|_{1}
+\]
+
+\end_inset
+
+with gradient 
+\begin_inset Formula $\nabla F(w)=A^{T}(Ax-b)$
+\end_inset
+
+ and proximal operator as above.
+ The non-zero entries of the solution 
+\begin_inset Formula $x_{\ast}$
+\end_inset
+
+ represent the person the image belongs to.
+\end_layout
+
+\end_deeper
 \end_body
 \end_document

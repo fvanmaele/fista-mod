@@ -11,6 +11,7 @@ from glob import glob
 from skimage import io
 from skimage.color import rgb2gray
 import scipy.sparse as sparse
+from scipy.io import mmread, mmwrite
 
 from fista import fista
 from fista_mod import fista_mod, fista_cd
@@ -25,7 +26,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 # %%
-def setup(files, imsize, dictsize, n_trials, seed=None):
+def face_recognition(files, imsize, dictsize, n_trials, noise_mean=0, noise_stddev=0.1, seed=None, robust=False):
     """
     Generate input data for solving the robust face recognition problem using convex optimization
     solvers. The dictionary is built from randomly sampling a collection of images, all assumed
@@ -65,26 +66,44 @@ def setup(files, imsize, dictsize, n_trials, seed=None):
     colsize = len(samples)
     
     # Load images into dictionary
-    A = np.zeros((imsize, colsize))
+    if robust is True:
+        filename = 'B_dsize{}_seed{}_imsize{}_files{}_robust'.format(dictsize, seed, imsize, len(files))
+    else:
+        filename = 'B_dsize{}_seed{}_imsize{}_files{}'.format(dictsize, seed, imsize, len(files))
 
-    for i in range(0, colsize):
-        img = io.imread(files[int(samples[i])])
-        img = rgb2gray(img)
+    try:
+        B = mmread(filename)
+    except:
+        A = np.zeros((imsize, colsize))
+    
+        for i in range(0, colsize):
+            img = io.imread(files[int(samples[i])])
+            img = rgb2gray(img)
+            
+            A[:, i] = np.copy(img.flatten())
+
+        if robust is True:
+            B = sparse.hstack([sparse.csc_matrix(A), sparse.eye(imsize)], format='csc')
+        else:
+            B = A
         
-        A[:, i] = np.copy(img.flatten())
-
-    B = sparse.hstack([sparse.csc_matrix(A), sparse.eye(imsize)], format='csc')
+        mmwrite(filename, B)
 
     # Compute Lipschitz constant of l2 gradient
     BtB = B.T @ B
-    L = sparse.linalg.norm(BtB)
+    if sparse.issparse(B):
+        L = sparse.linalg.norm(BtB)
+    else:
+        L = np.linalg.norm(BtB)
     
     # Choose N different input images 'b' that are not in the dictionary
+    # TODO: when robust is True, add noise (or occlusion) to the random images 
+    # (alternatively, do so in run_trials)
     candidates = np.setdiff1d(range(0, len(files)), samples)
     candidates = candidates[np.random.permutation(len(candidates))[:n_trials]]
     
     return B, L, candidates
-
+    
 
 def soft_thresholding(gamma, w, lmb=1):
     """
@@ -122,7 +141,7 @@ def run_trials(files, method, B, L, starting_points, candidates, lmb, dsize, max
         Type of algorithm used. Can be one of 'fista', 'fista_mod', 'fista_rada', 'fista_greedy',
         or 'fista_cd'.
     B : np.array
-        Matrix B = [A I] for the robust face recognition problem.
+        Matrix B for the (robust) face recognition problem.
     L : float
         Lipschitz constant for the gradient B.T @ (Bw - b).
     starting_points : np.array
@@ -210,11 +229,17 @@ if __name__ == "__main__":
     parser.add_argument("--method", type=str, default='fista_mod', choices=['fista', 'fista_mod', 'fista_rada', 'fista_greedy', 'fista_cd'], 
                         help='fista algorithm used for numeric tests')
     parser.add_argument("--max-iter", type=str, default=100000, help='maximum number of iterations')
+    parser.add_argument("--robust", action='store_true', help='solve the robust face recognition problem (slow)')
+    parser.add_argument("--robust-mean", type=float, default=0, help='mean for noise added to sampled images')
+    parser.add_argument("--robust-stddev", type=float, default=0.1, help='standard deviation for noise added to sampled images')
     args = parser.parse_args()
 
     # generate input data
-    starting_points = np.zeros((imsize+args.dsize, 1)) # XXX: this seemed to have worked better than a random vector
-    B, L, candidates = setup(files, imsize, args.dsize, args.n_trials, args.seed)
+    B, L, candidates = face_recognition(files, imsize, args.dsize, args.n_trials, seed=args.seed, 
+                                        robust=args.robust, noise_mean=args.robust_mean, noise_stddev=args.robust_stddev)
+    # XXX: this seemed to have worked better than a random vector (but I forgot to add noise to the tested images...)
+    starting_points = np.zeros((np.shape(B)[1], 1))
 
     # run trials for different images
-    run_trials(files, args.method, B, L, starting_points, candidates, args.parameter, args.dsize, args.max_iter, args.tol)
+    run_trials(files, args.method, B, L, starting_points, candidates, 
+               args.parameter, args.dsize, args.max_iter, args.tol)

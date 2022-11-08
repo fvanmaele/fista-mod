@@ -5,6 +5,10 @@
 \save_transient_properties true
 \origin unavailable
 \textclass article
+\begin_preamble
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\argmax}{argmax}
+\end_preamble
 \use_default_options true
 \begin_modules
 theorems-ams
@@ -32,6 +36,7 @@ theorems-ams-extended
 \output_sync 0
 \bibtex_command default
 \index_command default
+\float_placement h
 \paperfontsize default
 \spacing onehalf
 \use_hyperref false
@@ -1582,6 +1587,26 @@ name "fig:Combined-CPU-time-Fourier"
 \end_layout
 
 \begin_layout Exercise
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+mbox{}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Problem definition
+\end_layout
+
+\begin_layout Standard
 The robust face recognition problem is given by
 \begin_inset Formula 
 \[
@@ -1593,7 +1618,6 @@ The robust face recognition problem is given by
 where
 \end_layout
 
-\begin_deeper
 \begin_layout Itemize
 \begin_inset Formula $\lambda\in\mathbb{R}_{>0}$
 \end_inset
@@ -1622,6 +1646,7 @@ status open
 
 \end_layout
 
+\begin_deeper
 \begin_layout Itemize
 \begin_inset Formula $B=[A\quad I]\in\mathbb{R}^{m\times(m+n)}$
 \end_inset
@@ -1768,9 +1793,9 @@ noprefix "false"
 \begin_layout Remark*
 When we consider images without noise, we have the optimization problem
 \begin_inset Formula 
-\[
-\min_{x\in\mathbb{R}^{m}}\frac{1}{2}\|Ax-b\|_{2}^{2}+\lambda\|x\|_{1}
-\]
+\begin{equation}
+\min_{x\in\mathbb{R}^{m}}\frac{1}{2}\|Ax-b\|_{2}^{2}+\lambda\|x\|_{1}\label{eq:basis-pursuit}
+\end{equation}
 
 \end_inset
 
@@ -1784,8 +1809,1363 @@ with gradient
 \end_inset
 
  represent the person the image belongs to.
+ In pratice this can only hold approximately, and we look instead at the
+ vector 
+\begin_inset Formula 
+\[
+|x|_{\downarrow}=(|x|_{[1]},|x|_{[2]},\dots),\quad|x|_{[1]}\geq|x|_{[2]}\geq\cdots
+\]
+
+\end_inset
+
+ of sorted by absolute magnitude of its elements.
 \end_layout
 
 \end_deeper
+\begin_layout Subsection*
+Face recognition data set
+\end_layout
+
+\begin_layout Standard
+We assemble the dictionary 
+\begin_inset Formula $A$
+\end_inset
+
+ as follows.
+ The baseline is the 
+\emph on
+Labeled Faces in the Wild
+\emph default
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+https://www.kaggle.com/datasets/jessicali9530/lfw-dataset
+\end_layout
+
+\end_inset
+
+ (LFW) dataset, with each image of size 
+\begin_inset Formula $(250,250)$
+\end_inset
+
+.
+ Images in this dataset are aligned, but not cropped so that background
+ details (and potentially multiple faces) are visible.
+ In a first attempt, 
+\begin_inset Formula $A$
+\end_inset
+
+ is constructed by randomly selecting 508 persons from this dataset which
+ have at least 5 images available.
+ Then, 4 images are selected randomly to construct A (training set), and
+ 1 image is selected randomly for the complement for the reconstruction
+ (verification set).
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=Python,numbers=left,numberstyle={\scriptsize},basicstyle={\small},breaklines=true,tabsize=4,frame=simple"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+for person in people:
+\end_layout
+
+\begin_layout Plain Layout
+
+    # reduce number of people in data set for performance reasons
+\end_layout
+
+\begin_layout Plain Layout
+
+    dice_roll = np.random.choice([1,2,3,4,5,6])
+\end_layout
+
+\begin_layout Plain Layout
+
+    if dice_roll == 1 or dice_roll == 3:
+\end_layout
+
+\begin_layout Plain Layout
+
+        idx = people[person]
+\end_layout
+
+\begin_layout Plain Layout
+
+    
+\end_layout
+
+\begin_layout Plain Layout
+
+        if len(idx) >= min_samples:
+\end_layout
+
+\begin_layout Plain Layout
+
+            idx_train = np.random.choice(idx, num_train)
+\end_layout
+
+\begin_layout Plain Layout
+
+            idx_verif = np.random.choice(np.setdiff1d(idx, idx_train), num_verif)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            training_set[person] = idx_train
+\end_layout
+
+\begin_layout Plain Layout
+
+            verification_set[person] = idx_verif
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The parameters for FISTA-Mod were chosen as follows: 
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda=10^{-3}$
+\end_inset
+
+ and 
+\begin_inset Formula $x_{0}=0\in\mathbb{R}^{n+m}$
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $TOL=10^{-7}$
+\end_inset
+
+ where the algorithm terminates if 
+\begin_inset Formula $\|x^{(k-1)}-x^{(k)}\|<TOL$
+\end_inset
+
+ or 5000 iterations were exceeded.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $p=\frac{1}{20}$
+\end_inset
+
+, 
+\begin_inset Formula $q=\frac{1}{2}$
+\end_inset
+
+, 
+\begin_inset Formula $r=4$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For recognizing original images (that is, images with no noise added), FISTA-Mod
+ applied to problem (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:basis-pursuit"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) could not uniquely recover a sample from the verification set, even though
+ the sequence 
+\begin_inset Formula $\{x^{(k)}\}$
+\end_inset
+
+ converged.
+ See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:uncropped-results"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The cause was likely images having more than a single face available or
+ other background artifacts.
+ See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:uncropped-results"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:convergence-uncropped"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "b"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222229.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Original
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222319.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $Bx^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222323.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[1]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222328.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[2]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222331.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[3]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Recovered images for uncropped 250x250 sample
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:uncropped-results"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/fista_mod_uncropped.jpg
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/fista_mod_uncropped_norm_diff.jpg
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Differences 
+\begin_inset Formula $J(x^{(k)})-J(x^{(k-1)})$
+\end_inset
+
+ and 
+\begin_inset Formula $\|x^{(k)}-x^{(k-1)}\|$
+\end_inset
+
+ by number of iterations
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Convergence and values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+ for uncropped 250x250 sample and 
+\begin_inset Formula $\lambda=10^{-3}$
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:convergence-uncropped"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To address this, the images were cropped to regions containing a face using
+ cascade classifiers.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+https://docs.opencv.org/3.4/db/d28/tutorial_cascade_classifier.html
+\end_layout
+
+\end_inset
+
+ Since the resulting images had different sizes, all samples below 100 pixels
+ and above 130 pixels height and width were removed.
+ The rest were then resized to 130 pixels height and width.
+ The final training set contained 776 images, so that 
+\begin_inset Formula $A\in\mathbb{R}^{16900\times776}$
+\end_inset
+
+, and an image from the verification set containing 245 items was selected.
+ This time around, the algorithm managed to recognize the person belonging
+ to given sample 
+\begin_inset Formula $b$
+\end_inset
+
+.
+ The parameter 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ was increased to 
+\begin_inset Formula $\lambda=1$
+\end_inset
+
+, and the tolerance lowered to 
+\begin_inset Formula $TOL=10^{-4}$
+\end_inset
+
+ with a maximum of 5000 iterations.
+ See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:cropped-results"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:convergence-cropped"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "b"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015303.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Original
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015802.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $Bx^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015511.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[1]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015514.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[2]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015518.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[3]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Recovered images for cropped 130x130 sample and 
+\begin_inset Formula $\lambda=1$
+\end_inset
+
+ 
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:cropped-results"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015440.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 020308.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Differences 
+\begin_inset Formula $J(x^{(k)})-J(x^{(k-1)})$
+\end_inset
+
+ and 
+\begin_inset Formula $\|x^{(k)}-x^{(k-1)}\|$
+\end_inset
+
+ by number of iterations
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Convergence and values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+ for cropped 130x130 sample and 
+\begin_inset Formula $\lambda=1$
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:convergence-cropped"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Conclusion*
+FISTA-Mod applied to the face recognition problem managed to recognize a
+ sample, provided a clear image of the same person is available in the dictionar
+y 
+\begin_inset Formula $A$
+\end_inset
+
+ is available.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+Clear image
+\begin_inset Quotes erd
+\end_inset
+
+ implies a fair amount of preprocessing required: alignment (
+\begin_inset Quotes eld
+\end_inset
+
+funneling
+\begin_inset Quotes erd
+\end_inset
+
+) as provided by the LFW dataset, and cropping with cascade classifiers
+ so that background details are not considered.
+\end_layout
+
 \end_body
 \end_document

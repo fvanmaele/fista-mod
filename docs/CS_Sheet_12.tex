@@ -1,4 +1,4 @@
-%% LyX 2.3.6.1 created this file.  For more info, see http://www.lyx.org/.
+%% LyX 2.3.6 created this file.  For more info, see http://www.lyx.org/.
 %% Do not edit unless you really know what you are doing.
 \documentclass[english]{article}
 \usepackage[T1]{fontenc}
@@ -29,13 +29,25 @@
 \newtheorem{xca}[thm]{\protect\exercisename}
 \theoremstyle{remark}
 \newtheorem*{rem*}{\protect\remarkname}
+\theoremstyle{remark}
+\newtheorem*{conclusion*}{\protect\conclusionname}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\argmax}{argmax}
+
+\@ifundefined{showcaptionsetup}{}{%
+ \PassOptionsToPackage{caption=false}{subfig}}
+\usepackage{subfig}
 \makeatother
 
 \usepackage{babel}
+\usepackage{listings}
+\providecommand{\conclusionname}{Conclusion}
 \providecommand{\exercisename}{Exercise}
 \providecommand{\remarkname}{Remark}
 \providecommand{\theoremname}{Theorem}
+\renewcommand{\lstlistingname}{Listing}
 
 \begin{document}
 \title{Compressed Sensing -- Sheet 12}
@@ -147,7 +159,7 @@ Methods using orthogonal projection had their CPU time increase exponentially.
 \end{itemize}
 \end{xca}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{centering}
 \includegraphics[width=0.9\columnwidth]{A_m64_n128_100_error}
 \par\end{centering}
@@ -156,7 +168,7 @@ Methods using orthogonal projection had their CPU time increase exponentially.
 with normalized columns.\label{fig:Relative-recovery-error-Gaussian}}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{centering}
 \includegraphics[width=0.8\columnwidth]{F_m64_n128_100_error}
 \par\end{centering}
@@ -166,7 +178,7 @@ Fourier} \textbf{matrix} $F\in\mathbb{R}^{64\times128}$ with normalized
 columns.\label{fig:Relative-recovery-error-Fourier}}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{centering}
 \includegraphics[width=0.8\columnwidth]{A_m64_n128_100_cputime}
 \par\end{centering}
@@ -177,7 +189,7 @@ columns.\label{fig:Combined-CPU-time-Gaussian}}
 
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{centering}
 \includegraphics[width=0.8\columnwidth]{F_m64_n128_100_cputime}
 \par\end{centering}
@@ -190,6 +202,12 @@ normalized columns.\label{fig:Combined-CPU-time-Fourier}}
 
 \newpage{}
 \begin{xca}
+\mbox{}
+\end{xca}
+
+
+\subsection*{Problem definition}
+
 The robust face recognition problem is given by
 \[
 \min_{w\in\mathbb{R}^{m+n}}\frac{1}{2}\|Bw-b\|_{2}^{2}+\lambda\|w\|_{1}
@@ -197,6 +215,7 @@ The robust face recognition problem is given by
 where
 \begin{itemize}
 \item $\lambda\in\mathbb{R}_{>0}$ is a regularization parameter, 
+\begin{itemize}
 \item $B=[A\quad I]\in\mathbb{R}^{m\times(m+n)}$ with $A\in\mathbb{R}^{m\times n}$,
 $I\in\mathbb{R}^{m\times m}$ a highly correlated dictionary of $m$
 face images $v\in\mathbb{R}^{n}$, stacked column-wise;
@@ -239,14 +258,197 @@ of problem (\ref{eq:minimization}) represent the person the image
 belongs to.
 \begin{rem*}
 When we consider images without noise, we have the optimization problem
-\[
-\min_{x\in\mathbb{R}^{m}}\frac{1}{2}\|Ax-b\|_{2}^{2}+\lambda\|x\|_{1}
-\]
+\begin{equation}
+\min_{x\in\mathbb{R}^{m}}\frac{1}{2}\|Ax-b\|_{2}^{2}+\lambda\|x\|_{1}\label{eq:basis-pursuit}
+\end{equation}
 with gradient $\nabla F(w)=A^{T}(Ax-b)$ and proximal operator as
 above. The non-zero entries of the solution $x_{\ast}$ represent
-the person the image belongs to.
+the person the image belongs to. In pratice this can only hold approximately,
+and we look instead at the vector 
+\[
+|x|_{\downarrow}=(|x|_{[1]},|x|_{[2]},\dots),\quad|x|_{[1]}\geq|x|_{[2]}\geq\cdots
+\]
+ of sorted by absolute magnitude of its elements.
 \end{rem*}
-\end{xca}
+\end{itemize}
 
+\subsection*{Face recognition data set}
+
+We assemble the dictionary $A$ as follows. The baseline is the \emph{Labeled
+Faces in the Wild}\footnote{https://www.kaggle.com/datasets/jessicali9530/lfw-dataset}
+(LFW) dataset, with each image of size $(250,250)$. Images in this
+dataset are aligned, but not cropped so that background details (and
+potentially multiple faces) are visible. In a first attempt, $A$
+is constructed by randomly selecting 508 persons from this dataset
+which have at least 5 images available. Then, 4 images are selected
+randomly to construct A (training set), and 1 image is selected randomly
+for the complement for the reconstruction (verification set).
+
+\begin{lstlisting}[language=Python,numbers=left,numberstyle={\scriptsize},basicstyle={\small},breaklines=true,tabsize=4,frame=simple]
+for person in people:
+    # reduce number of people in data set for performance reasons
+    dice_roll = np.random.choice([1,2,3,4,5,6])
+    if dice_roll == 1 or dice_roll == 3:
+        idx = people[person]
+    
+        if len(idx) >= min_samples:
+            idx_train = np.random.choice(idx, num_train)
+            idx_verif = np.random.choice(np.setdiff1d(idx, idx_train), num_verif)
+
+            training_set[person] = idx_train
+            verification_set[person] = idx_verif
+\end{lstlisting}
+
+The parameters for FISTA-Mod were chosen as follows: 
+\begin{itemize}
+\item $\lambda=10^{-3}$ and $x_{0}=0\in\mathbb{R}^{n+m}$;
+\item $TOL=10^{-7}$ where the algorithm terminates if $\|x^{(k-1)}-x^{(k)}\|<TOL$
+or 5000 iterations were exceeded.
+\item $p=\frac{1}{20}$, $q=\frac{1}{2}$, $r=4$.
+\end{itemize}
+For recognizing original images (that is, images with no noise added),
+FISTA-Mod applied to problem (\ref{eq:basis-pursuit}) could not uniquely
+recover a sample from the verification set, even though the sequence
+$\{x^{(k)}\}$ converged. See Figure \ref{fig:uncropped-results}.
+The cause was likely images having more than a single face available
+or other background artifacts. See Figure \ref{fig:uncropped-results}
+and \ref{fig:convergence-uncropped}.
+
+\begin{figure}[h]
+\hfill{}%
+\begin{minipage}[b][1\totalheight][t]{0.2\columnwidth}%
+\begin{center}
+\subfloat[Original]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222229\string".png}
+\par\end{centering}
+}
+\par\end{center}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[$Bx^{\ast}$]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222319\string".png}
+\par\end{centering}
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[{$B_{|x^{\ast}|_{[1]}}$}]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222323\string".png}
+\par\end{centering}
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[{$B_{|x^{\ast}|_{[2]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222328\string".png}
+
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[{$B_{|x^{\ast}|_{[3]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222331\string".png}
+
+}%
+\end{minipage}
+
+\caption{Recovered images for uncropped 250x250 sample\label{fig:uncropped-results}}
+
+\end{figure}
+
+\begin{figure}[h]
+\hfill{}%
+\begin{minipage}[t]{0.5\columnwidth}%
+\subfloat[Values of $x^{\ast}$]{\begin{centering}
+\includegraphics[width=1\columnwidth]{/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/fista_mod_uncropped}
+\par\end{centering}
+
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.5\columnwidth}%
+\subfloat[Differences $J(x^{(k)})-J(x^{(k-1)})$ and $\|x^{(k)}-x^{(k-1)}\|$
+by number of iterations]{\begin{centering}
+\includegraphics[width=1\columnwidth]{/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/fista_mod_uncropped_norm_diff}
+\par\end{centering}
+
+}%
+\end{minipage}
+
+\caption{Convergence and values of $x^{\ast}$ for uncropped 250x250 sample
+and $\lambda=10^{-3}$\label{fig:convergence-uncropped}}
+
+\end{figure}
+
+To address this, the images were cropped to regions containing a face
+using cascade classifiers.\footnote{https://docs.opencv.org/3.4/db/d28/tutorial\_cascade\_classifier.html}
+Since the resulting images had different sizes, all samples below
+100 pixels and above 130 pixels height and width were removed. The
+rest were then resized to 130 pixels height and width. The final training
+set contained 776 images, so that $A\in\mathbb{R}^{16900\times776}$,
+and an image from the verification set containing 245 items was selected.
+This time around, the algorithm managed to recognize the person belonging
+to given sample $b$. The parameter $\lambda$ was increased to $\lambda=1$,
+and the tolerance lowered to $TOL=10^{-4}$ with a maximum of 5000
+iterations. See Figure \ref{fig:cropped-results} and \ref{fig:convergence-cropped}.
+
+\begin{figure}[h]
+\hfill{}%
+\begin{minipage}[b][1\totalheight][t]{0.2\columnwidth}%
+\begin{center}
+\subfloat[Original]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015303\string".png}
+\par\end{centering}
+}
+\par\end{center}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[$Bx^{\ast}$]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015802\string".png}
+\par\end{centering}
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[{$B_{|x^{\ast}|_{[1]}}$}]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015511\string".png}
+\par\end{centering}
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[{$B_{|x^{\ast}|_{[2]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015514\string".png}
+
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.2\columnwidth}%
+\subfloat[{$B_{|x^{\ast}|_{[3]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015518\string".png}
+
+}%
+\end{minipage}
+
+\caption{Recovered images for cropped 130x130 sample and $\lambda=1$ \label{fig:cropped-results}}
+\end{figure}
+
+\begin{figure}[h]
+\hfill{}%
+\begin{minipage}[t]{0.5\columnwidth}%
+\subfloat[Values of $x^{\ast}$]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015440\string".png}
+\par\end{centering}
+}%
+\end{minipage}\hfill{}%
+\begin{minipage}[t]{0.5\columnwidth}%
+\subfloat[Differences $J(x^{(k)})-J(x^{(k-1)})$ and $\|x^{(k)}-x^{(k-1)}\|$
+by number of iterations]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 020308\string".png}
+\par\end{centering}
+}%
+\end{minipage}
+
+\caption{Convergence and values of $x^{\ast}$ for cropped 130x130 sample and
+$\lambda=1$\label{fig:convergence-cropped}}
+\end{figure}
+
+\begin{conclusion*}
+FISTA-Mod applied to the face recognition problem managed to recognize
+a sample, provided a clear image of the same person is available in
+the dictionary $A$ is available. ``Clear image'' implies a fair
+amount of preprocessing required: alignment (``funneling'') as provided
+by the LFW dataset, and cropping with cascade classifiers so that
+background details are not considered.
+\end{conclusion*}
 
 \end{document}

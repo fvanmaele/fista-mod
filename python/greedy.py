@@ -10,7 +10,8 @@ def basis_pursuit(A, b, nn=False):
     by recasting it as a linear program in the standard form:
         min(u, v) 1'u + 1'v  s.t.  Au - Av = b,  u, v >= 0
         
-    where u equals the positive part of x and v the negative part.
+    where u equals the positive part of x and v the negative part. Iff A has the null-space property
+    of order s \in [n], then basis pursuit recovers the sparsest solution to b = Ax.
 
     Parameters
     ----------
@@ -23,8 +24,8 @@ def basis_pursuit(A, b, nn=False):
 
     Returns
     -------
-    Solution to the minimization problem (P1). Iff A has the null-space property of order s \in [n],
-    then basis pursuit recovers the sparsest solution to b = Ax.
+    np.array
+        Solution to the minimization problem (P1), if feasible and bounded.
 
     """
     n = np.shape(A)[1]
@@ -53,6 +54,10 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None, s=None):
     remain in all subsequent support sets. Hence, if an incorrect index has been selected,
     s iterations of OMP are not enough to recover a vector with sparsity s that solves Ax = b.
 
+    Every nonzero s-sparse vector with S = supp(x) of size s is recovered from b = Ax after 
+    at most s iterations, if and only if the exact recovery condition (ERC) is fulfilled:
+        ||pinv(A)[:, S] @ A[:, Sc]||_1 < 1
+
     Parameters
     ----------
     A : np.array
@@ -71,11 +76,8 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None, s=None):
 
     Returns
     -------
-    Sparse representation x(k), minimizing ||b - Ax(k)||_2 on a support set. 
-    
-    Every nonzero s-sparse vector with S = supp(x) of size s is recovered from b = Ax after 
-    at most s iterations, if and only if the exact recovery condition (ERC) is fulfilled:
-        ||pinv(A)[:, S] @ A[:, Sc]||_1 < 1
+    np.array
+        Sparse representation x(k), minimizing ||b - Ax(k)||_2 on a support set. 
 
     """
     m, n = np.shape(A)
@@ -137,7 +139,8 @@ def MP(A, b, max_iter=500, tol_res=None, s=None):
 
     Returns
     -------
-    Sparse representation x(k).
+    np.array
+        Sparse representation x(k).
 
     """
     m, n = np.shape(A)
@@ -164,3 +167,114 @@ def MP(A, b, max_iter=500, tol_res=None, s=None):
 
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
+    
+    return x
+        
+
+def threshold(x, s, rule='lex', seed=None):
+    """
+    Hard thresholding operator.
+
+    Parameters
+    ----------
+    x : np.array
+        Input vector of dimension n >= s.
+    s : int
+        Number of entries with largest magnitudes that should be kept.
+    rule : str
+        Rule to resolve ties when elements have the same magnitudes. Can be one 'lex', 'lex_reverse'
+        or 'random'. Defaults to 'lex'.
+
+    Returns
+    -------
+    np.array
+        s entries of x with the largest magnitudes set to zero.
+
+    """
+    # precondition checks
+    assert s > 0, "s must be a positive value"
+    assert x.size <= s, "s must not exceed the length of x"
+    Tx = np.zeros(x.size)
+
+    # FIXME: actually set the values of the complement (a copy of x) to zero
+    if rule == 'lex':
+        return x[np.flip(np.argsort(x))[:s]]
+    if rule == 'lex_reverse':
+        return x[np.argsort(np.flip(x))[:s]]
+    if rule == 'random':
+        np.random.seed(seed)
+        return x[np.flip(np.lexsort((np.random.random(x.size), x)).argsort())]
+
+
+def CoSaMP(A, b, s, max_iter=500, x0=None):
+    """
+    Compressive sampling matching pursuit (CoSaMP) keeps track of the active support set S(k+1),
+    and adds as well as removes elements in each iteration. An estimate of the solution sparsity
+    required beforehand. 
+    
+    At each iteration, an s-sparse approximation is used to compute the current  error. The 2s 
+    columns of A that correlate best with this error are then selected and added to the support set.
+    
+    A least squares estimate is found over the current support. The s largest elements in magnitude
+    are found, and their corresponding locations are chosen as the new support set.
+
+    Parameters
+    ----------
+    A : np.array
+        Coefficient matrix of dimension m x n. The algorithm operates under the assumption that
+        A has normalized columns.
+    b : np.array
+        Right-hand side of dimension m.
+    s : int
+        Sparsity level of the solution x.
+    max_iter : int
+        Maximum number of iterations before terminating the algorithm. Defaults to 500.
+    x0 : np.array
+        Starting vector of dimension n, typically 0 or s-sparse.
+    
+    Returns
+    -------
+    np.array
+
+    """
+    m, n = np.shape(A)
+    # precondition checks
+    assert m == len(b), "A and b have incompatible dimensions"
+    # expensive check, disable with `python -O`
+    assert np.all(np.isclose(np.linalg.norm(A, axis=0), np.ones(n))), "columns of A are not normalized"
+    
+    # TODO
+
+
+def IHT(A, b, s, max_iter=500, x0=None):
+    """
+    Iterative hard thresholding. An estimate of the solution sparsity is required beforehand.
+
+    Parameters
+    ----------
+    A : np.array
+        Coefficient matrix of dimension m x n.
+    b : np.array
+        Right-hand side of dimension m.
+    s : int
+        Sparsity level of the solution x.
+    max_iter : int
+        Maximum number of iterations before terminating the algorithm. Defaults to 500.
+    x0 : np.array
+        Starting vector of dimension n, typically 0 or s-sparse.
+
+    Returns
+    -------
+    np.array
+
+    """
+    m, n = np.shape(A)
+    # precondition checks
+    assert m == len(b), "A and b have incompatible dimensions"
+
+    if x0 is None:
+        x0 = np.zeros(n)
+    r = b - A @ x0
+    
+    for k in range(0, max_iter):
+        pass

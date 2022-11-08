@@ -312,6 +312,7 @@ def rada_fista(L, x0, p, q, proxR, gradF, eps_m=20, eps=None, reset_t=False, max
 
 
 # TODO: implement automatic choice of eps as in rada_fista
+# TODO: complete documentation
 def greedy_fista(L, gamma, x0, S, eps, proxR, gradF, max_iter=500, tol_sol=None):
     """
     A variation on a restarting FISTA scheme which uses a larger step-size than 1/L in the proximal
@@ -341,10 +342,10 @@ def greedy_fista(L, gamma, x0, S, eps, proxR, gradF, max_iter=500, tol_sol=None)
         xk = proxR(gamma, yk - gamma*gradF(yk))
         xk_diff = np.linalg.norm(xk - xk_prev)
         
-        # termination criterion
+        # Termination criterion
         if tol_sol is not None and xk_diff < tol_sol:
             break
-        # copy of first iterate for safeguard
+        # Copy of first iterate for safeguard
         if k == 1:
             x1 = np.copy(xk)
         # Restarting

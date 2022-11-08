@@ -32,21 +32,22 @@ def basis_pursuit(A, b, nn=False, verbose=False):
 
     """
     n = np.shape(A)[1]
-    u = cp.Variable(n)
+    x = cp.Variable(n)
 
-    cost = cp.norm(u, 1)
+    cost = cp.norm(x, 1)
     if nn is True:
-        cstr = [A@u == b, u >= 0]
+        cstr = [A@x == b, x >= 0]
     else:
-        cstr = [A@u == b]
+        cstr = [A@x == b]
     
     prob = cp.Problem(cp.Minimize(cost), cstr)
     prob.solve(verbose=verbose)
     
-    return u.value
+    return x.value
         
 
 # TODO: return number of iterations for each (greedy) algorithm, norm of residual
+# -> +documentation updates
 
 def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
     """
@@ -80,7 +81,7 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
     Returns
     -------
     np.array
-        Sparse representation x(k), minimizing ||b - Ax(k)||_2 on a support set. 
+        Sparse representation x(k) approximately solving Ax = b.
 
     """
     m, n = np.shape(A)
@@ -90,17 +91,16 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
     assert np.all(np.isclose(np.linalg.norm(A, axis=0), np.ones(n))), "columns of A are not normalized"
     
     x = np.zeros(n)
-    S = np.array([])
+    S = np.array([], dtype=int)
     r = np.copy(b)
 
     for k in range(0, max_iter):
-        j = np.argmax(A.T @ r)                  # maximum correlation
-        np.append(S, j)                         # update index set
-        Sc = np.setdiff1d(np.arange(0, m), S)   # complement of index set
+        j = np.argmax(np.abs(A.T @ r))  # maximum correlation
+        S = np.append(S, j)     # update index set
 
         # orthogonal projection
-        x[S]  = np.linalg.pinv(A[:, S], rcond=rcond) @ b
-        x[Sc] = 0.0
+        x = np.zeros(n)
+        x[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b
         
         # update residual
         r = b - A@x
@@ -124,7 +124,7 @@ def MP(A, b, max_iter=500, tol_res=None):
     A greedy strategy that does not involve any orthogonal projection. Unlike OMP, only the
     component associated with the currently selected column is updated:
         x(k+1) = x(k) + t*e_j
-    
+
     where t is a real number and the indices j are chosen to minimize the 
     residual ||b - Ax(n+1)||_2. 
     
@@ -145,7 +145,7 @@ def MP(A, b, max_iter=500, tol_res=None):
     Returns
     -------
     np.array
-        Sparse representation x(k).
+        Sparse representation x(k) approximately solving b = Ax.
 
     """
     m, n = np.shape(A)
@@ -158,14 +158,13 @@ def MP(A, b, max_iter=500, tol_res=None):
     r = np.copy(b)
     
     for k in range(0, max_iter):
-        tmp = A.T @ r
-        j = np.argmax(tmp)      # maximum correlation
-        t = tmp[j]
+        j = np.argmax(np.abs(A.T @ r))      # maximum correlation
+        t = A[:, j].T @ r
         x[j] = x[j] + t
 
         # update residual
-        r = b - A@x
-        
+        r = r - t*A[:, j]
+
         # termination criterium
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
@@ -205,15 +204,13 @@ def threshold(x, s, rule, seed=None):
     """
     # precondition checks
     assert s > 0, "s must be a positive value"
-    assert x.size <= s, "s must not exceed the length of x"
+    assert s <= x.size, "s must not exceed the length of x"
     Tx = np.zeros(x.size)
 
     if rule == 'lex':
-        idx = np.flip(np.argsort(x))[:s]
-    
+        idx = np.flip(np.argsort(x))[:s]   
     elif rule == 'lex_reverse':
         idx = np.argsort(np.flip(x))[:s]
-    
     elif rule == 'random':
         np.random.seed(seed)
         idx = np.flip(np.lexsort((np.random.random(x.size), x)).argsort())
@@ -261,10 +258,10 @@ def BT(A, b, s, rule='lex', rcond=1e-15):
     assert m == len(b), "A and b have incompatible dimensions"
 
     S = np.nonzero(threshold(A.T @ b, s, rule))  # support set
-    x = np.zeros(m)
+    x = np.zeros(n)
 
     # orthogonal projection on S
-    x[S]  = np.linalg.pinv(A[:, S], rcond=rcond) @ b
+    x[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b
 
     return x
 
@@ -310,7 +307,7 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
         x = np.zeros(n)
     else:
         x = np.copy(x0)
-    r = b - A @ x0
+    r = b - A@x
 
     for k in range(0, max_iter):
         x = threshold(x + A.T@r, s, rule)
@@ -319,6 +316,7 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
         # termination criterion
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
+        print(np.linalg.norm(r))
     
     if tol_res is None:
         converged = None
@@ -371,15 +369,14 @@ def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
         x = np.zeros(n)
     else:
         x = np.copy(x0)
-    r = b - A @ x0
+    r = b - A@x
 
     for k in range(0, max_iter):
         S  = np.nonzero(threshold(x + A.T@r, s, rule))  # support set
-        Sc = np.setdiff1d(np.arange(0, m), S)
 
         # orthogonal projection
+        x = np.zeros(n)
         x[S]  = np.linalg.pinv(A[:, S], rcond=rcond) @ b
-        x[Sc] = 0.0
 
         # compute residual for next step
         r = b - A@x

@@ -35,36 +35,76 @@ def recovery_error(x, xh, ord=None):
     return np.linalg.norm(x - xh, ord=ord) / np.linalg.norm(x)
 
 # %% # Recover xh from measurements b = Ax, for every problem instance of sparsity 1 <= s <= m
+# TODO: repeat experiments for matrix P!
+np.random.seed(42)
 tol = 10e-6
 n_repetitions = 100
+max_iter = 500
 
 for s in range(1, m+1):
-    xs_fre_bp     = np.array([])
-    xs_fre_omp    = np.array([])
-    xs_fre_mp     = np.array([])
-    xs_fre_iht    = np.array([])
-    xs_fre_cosamp = np.array([])
-    xs_fre_htp    = np.array([])
-    xs_fre_sp     = np.array([])
+    x_fre_bp     = []
+    x_fre_omp    = []
+    x_fre_mp     = []
+    x_fre_iht    = []
+    x_fre_cosamp = []
+    x_fre_bt     = []
+    x_fre_htp    = []
+    x_fre_sp     = []
 
-    for x in generate_problems(n, s, n_repetitions):
+    # TODO: add counters for "TOL not reached"
+    for k, x in enumerate(generate_problems(n, s, n_repetitions)):
         b = A @ x
 
         # 1. basis pursuit
+        print("n: {}, sparsity: {}, k: {}, basis pursuit".format(n, s, k))
         xh = algorithms.basis_pursuit(A, b)
-        xs_fre_bp.append(recovery_error(x, xh))
+        x_fre_bp.append(recovery_error(x, xh))
 
         # 2. orthogonal matching pursuit
-        xh = algorithms.OMP(A, b)
+        print("n: {}, sparsity: {}, k: {}, OMP".format(n, s, k))
+        xh, conv = algorithms.OMP(A, b, tol_res=tol)
+        if conv is False:
+            print("warning: TOL not reached") # TODO: add norm(residual) to message
+        x_fre_omp.append(recovery_error(x, xh))
+
         # 3. matching pursuit
-    
+        print("n: {}, sparsity: {}, k: {}, MP".format(n, s, k))
+        xh, conv = algorithms.MP(A, b, tol_res=tol)
+        if conv is False:
+            print("warning: TOL not reached")
+        x_fre_mp.append(recovery_error(x, xh))
+
         # 4. iterative hard thresholding
-        
+        print("n: {}, sparsity: {}, k: {}, IHT".format(n, s, k))
+        xh, conv = algorithms.IHT(A, b, s, tol_res=tol)
+        if conv is False:
+            print("warning: TOL not reached")
+        x_fre_iht.append(recovery_error(x, xh))
+
         # 5. compressive sampling matching pursuit
+        print("n: {}, sparsity: {}, k: {}, CoSaMP".format(n, s, k))
+        xh, conv = algorithms.CoSaMP(A, b, s, tol_res=tol)
+        if conv is False:
+            print("warning: TOL not reached")
+        x_fre_cosamp.append(recovery_error(x, xh))
         
         # 6. basic thresholding
-        
+        print("n: {}, sparsity: {}, k: {}, BT".format(n, s, k))
+        xh = algorithms.BT(A, b, s)
+        x_fre_bt.append(recovery_error(x, xh))
+
         # 7. hard thresholding pursuit
+        print("n: {}, sparsity: {}, k: {}, HTP".format(n, s, k))
+        xh, conv = algorithms.HTP(A, b, s, tol_res=tol)
+        if conv is False:
+            print("warning: TOL not reached")
+        x_fre_htp.append(recovery_error(x, xh))
         
         # 8. subspace pursuit
-        
+        print("n: {}, sparsity: {}, k: {}, SP".format(n, s, k))
+        xh, conv = algorithms.SP(A, b, s, tol_res=tol)
+        if conv is False:
+            print("warning: TOL not reached")
+        x_fre_sp.append(recovery_error(x, xh))
+
+        break

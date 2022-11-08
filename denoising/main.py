@@ -18,7 +18,12 @@ import matplotlib.pyplot as plt
 from scipy import sparse
 import pyproximal
 
-from fista import fista, fista_mod, fista_cd, fista_rada, fista_greedy
+from fista import fista, fista_mod, fista_cd
+
+# The restarting algorithms had either the same or consistently worse
+# performance, either because of an implementation error or because they are
+# not directly applicable to 2D problems. As such they were left out.
+#from fista_restart import fista_rada, fista_greedy
 
 
 # %%
@@ -39,7 +44,7 @@ def PSNR(orig, noisy):
 
 
 def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
-    assert np.size(orig) == np.size(noisy)
+    assert np.shape(orig) == np.shape(noisy)
 
     sol_diff = []
     obj_diff = []
@@ -48,6 +53,7 @@ def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
     for k, (xk, xk_prev) in enumerate(gen, start=1):
         sol_diff.append(np.linalg.norm(xk - xk_prev))
         sol_psnr.append(PSNR(orig, xk))
+        #print(sol_diff[-1])
 
         if F is not None and R is not None:
             Fxk = F(xk) + R(xk)
@@ -68,91 +74,69 @@ def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
 
 
 # %%
-def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs):
+def main_denoising(imfile, id, methods, sigma, max_iter, tol, rsize=(256, 256), **kwargs):
     # Load images
+    # XXX: do this in a separate setup phase
     image = resize(rgb2gray(io.imread(imfile)), rsize, anti_aliasing=True)
     nx, ny = np.shape(image)
     plt.imsave('image{}.png'.format(id), image, cmap='gray')
 
     noisy = random_noise(image, **kwargs)
-    nsize = noisy.size
+    #nsize = noisy.size
     plt.imsave('image{}_{}.png'.format(id, kwargs['mode']), noisy, cmap='gray')
 
-    # Formulate problem
-    orig  = image.flatten()
-    b     = noisy.flatten()
-    L     = sparse.linalg.norm(sparse.eye(nsize))
-    F     = lambda w : 1/2 * np.dot(w - b, w - b)
-    gradF = lambda w : w - b
+    # Formulate 2-dimensional problem
+    #orig  = image.flatten()
+    #b     = noisy.flatten()
+    L     = sparse.linalg.norm(sparse.eye(nx))
+    F     = lambda W : 1/2 * np.linalg.norm(W - noisy, ord=None)**2
+    gradF = lambda W : W - noisy
 
-    R     = pyproximal.TV(dims=(nsize, ), sigma=sigma)
-    proxR = lambda gamma, w : R.prox(w, gamma)
-    x0    = np.zeros(nsize)
+    R     = pyproximal.TV(dims=(nx, ny), sigma=sigma)
+    proxR = lambda gamma, W : R.prox(W, gamma)
+    x0    = np.zeros((nx, ny))
     
     
     # FISTA
-    print("Image {}, FISTA, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista', sigma, tol)
-    generator = fista(L, x0, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)
-    
-    with open(basename + '.json', 'w') as f:
-        json.dump(exp_data, f, cls=NumpyEncoder)
+    if 'fista' in methods:
+        print("Image {}, FISTA, sigma {}, TOL {}".format(id, sigma, tol))
+        basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista', sigma, tol)
+        generator = fista(L, x0, proxR, gradF, max_iter=max_iter)
+        exp_data  = experiment(image, noisy, generator, F=F, R=R, tol_sol=tol)
+        
+        with open(basename + '.json', 'w') as f:
+            json.dump(exp_data, f, cls=NumpyEncoder)
 
-    plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
-    print("done {} iterations".format(exp_data['k']))
+        plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
+        print("done {} iterations".format(exp_data['k']))
     
     
     # Modified FISTA
-    print("Image {}, FISTA-Mod, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_mod', sigma, tol)
-    generator = fista_mod(L, x0, 1/20, 1/2, 4, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(orig, b, generator, F=F, R=R, tol_sol=tol)
-    
-    with open(basename + '.json', 'w') as f:
-        json.dump(exp_data, f, cls=NumpyEncoder)
-    
-    plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')        
-    print("done {} iterations".format(exp_data['k']))
-    
-    
-    # Restarting FISTA
-    print("Image {}, Rada-FISTA, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_rada', sigma, tol)
-    generator = fista_rada(L, x0, 1/20, 1/2, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)
-    
-    with open(basename + '.json', 'w') as f:
-        json.dump(exp_data, f, cls=NumpyEncoder)
+    if 'fista_mod' in methods:
+        print("Image {}, FISTA-Mod, sigma {}, TOL {}".format(id, sigma, tol))
+        basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_mod', sigma, tol)
+        generator = fista_mod(L, x0, 1/20, 1/2, 4, proxR, gradF, max_iter=max_iter)
+        exp_data  = experiment(image, noisy, generator, F=F, R=R, tol_sol=tol)
 
-    plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
-    print("done {} iterations".format(exp_data['k']))
-    
-    
-    # Greedy FISTA
-    print("Image {}, Greedy FISTA, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_greedy', sigma, tol)
-    generator = fista_greedy(L, 1.3/L, x0, 1, 0.96, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)    
-    
-    with open(basename + '.json', 'w') as f:
-        json.dump(exp_data, f, cls=NumpyEncoder)
-    
-    plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
-    print("done {} iterations".format(exp_data['k']))
-    
-    
+        with open(basename + '.json', 'w') as f:
+            json.dump(exp_data, f, cls=NumpyEncoder)
+
+        plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')        
+        print("done {} iterations".format(exp_data['k']))
+
+
     # FISTA (Chambolle & Dossal)
-    print("Image {}, FISTA-CD, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_cd', sigma, tol)
-    generator = fista_cd(L, x0, 20, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)
-    
-    with open(basename + '.json', 'w') as f:
-        json.dump(exp_data, f, cls=NumpyEncoder)
-        
-    plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
-    print("done {} iterations".format(exp_data['k']))
+    if 'fista_cd' in methods:
+        print("Image {}, FISTA-CD, sigma {}, TOL {}".format(id, sigma, tol))
+        basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_cd', sigma, tol)
+        generator = fista_cd(L, x0, 20, proxR, gradF, max_iter=max_iter)
+        exp_data  = experiment(image, noisy, generator, F=F, R=R, tol_sol=tol)
+
+        with open(basename + '.json', 'w') as f:
+            json.dump(exp_data, f, cls=NumpyEncoder)
+
+        plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
+        print("done {} iterations".format(exp_data['k']))
     
 
 # %%
@@ -165,9 +149,9 @@ if __name__ == "__main__":
 
     # optional arguments
     parser.add_argument("--method",         type=str,       default='fista_mod', help='fista algorithm used for numeric tests',
-                        choices=['fista', 'fista_mod', 'fista_rada', 'fista_greedy', 'fista_cd'])
+                        choices=['fista', 'fista_mod', 'fista_cd'])
     parser.add_argument("--tol",            type=float,     default=1e-8,   help="threshold for difference ||x{k} - x{k-1}||")
-    parser.add_argument("--sigma",          type=float,     default=0.09,   help="value of the regularization parameter")
+    parser.add_argument("--sigma",          type=float,     default=0.06,   help="value of the regularization parameter")
     parser.add_argument("--max-iter",       type=int,       default=5000,   help="maximum number of iterations for each method")
     parser.add_argument("--nx",             type=int,       default=256,    help="size to resize input images to")
     parser.add_argument("--ny",             type=int,       default=256,    help="size to resize input images to")
@@ -199,7 +183,10 @@ if __name__ == "__main__":
     # load list of images files in stylegan2 directory
     data = glob('stylegan2/*')
     data.sort()
-    
+
+    # XXX: use problem_range as in sheet12_ex1
+    methods = {'fista': 1, 'fista_mod': 1, 'fista_cd': 1}
+
     # run FISTA experiments
     kwargs = {'mode': noise_mode}
     if noise_mode == 'gaussian' or noise_mode == 'speckle':
@@ -211,4 +198,4 @@ if __name__ == "__main__":
         kwargs['amount'] = noise_amount
 
     for id, imfile in enumerate(data[:args.n_images]):
-        main_denoising(imfile, id, sigma, max_iter, tol, rsize=(nx, ny), **kwargs)
+        main_denoising(imfile, id, methods, sigma, max_iter, tol, rsize=(nx, ny), **kwargs)

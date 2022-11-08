@@ -55,20 +55,21 @@ def fista_bt(L, x0, proxR, gradF, max_iter=500, tol_sol=None):
     """
     xk_prev = np.copy(x0) # x_{-1}
     xk = np.copy(x0) # x_{0}
-    tk_prev = 1
+    tk = 1
     gamma = 1./L
-    r = 4
 
     for k in range(1, max_iter+1):
-        tk = (1 + np.sqrt(r * tk_prev**2)) / 2
+        tk_prev = tk
+        tk = (1 + np.sqrt(1 + 4*tk_prev**2)) / 2
         ak = (tk_prev - 1) / tk
         yk = xk + ak*(xk - xk_prev)
-        
-        xk_prev = np.copy(xk) # x_{-1}
+
+        xk_prev = np.copy(xk)        
         xk = proxR(gamma, yk - gamma*gradF(yk))
         xk_diff = np.linalg.norm(xk - xk_prev)
         
         # termination criterion
+        print("FISTA: {} (iter {})".format(xk_diff, k))
         if tol_sol is not None and xk_diff < tol_sol:
             break
 
@@ -126,8 +127,8 @@ def fista_cd(L, x0, d, proxR, gradF, max_iter=500, tol_sol=None):
     for k in range(1, max_iter+1):
         ak = (k - 1) / (k + d)
         yk = xk + ak*(xk - xk_prev)
-        
-        xk_prev = np.copy(xk) # x_{-1}
+
+        xk_prev = np.copy(xk)        
         xk = proxR(gamma, yk - gamma*gradF(yk))
         xk_diff = np.linalg.norm(xk - xk_prev)
         
@@ -191,15 +192,16 @@ def fista_mod(L, x0, p, q, r, proxR, gradF, max_iter=500, tol_sol=None):
     
     xk_prev = np.copy(x0) # x_{-1}
     xk = np.copy(x0) # x_{0}
-    tk_prev = 1
+    tk = 1
     gamma = 1./L
     
     for k in range(1, max_iter+1):
+        tk_prev = tk
         tk = (p + np.sqrt(q + r*tk_prev**2)) / 2
         ak = (tk_prev - 1) / tk
         yk = xk + ak*(xk - xk_prev)
-        
-        xk_prev = np.copy(xk) # x_{-1}
+
+        xk_prev = np.copy(xk)        
         xk = proxR(gamma, yk - gamma*gradF(yk))
         xk_diff = np.linalg.norm(xk - xk_prev)
         
@@ -271,17 +273,18 @@ def rada_fista(L, x0, p, q, proxR, gradF, eps_m=20, eps=None, reset_t=False, max
 
     xk_prev = np.copy(x0) # x_{-1}
     xk = np.copy(x0) # x_{0}
-    tk_prev = 1
-    r = 4
+    tk = 1
+    r  = 4
     gamma = 1./L
     n_restarts = 0
 
     for k in range(1, max_iter+1):
+        tk_prev = tk
         tk = (p + np.sqrt(q + r*tk_prev**2)) / 2
         ak = (tk_prev - 1) / tk
         yk = xk + ak*(xk - xk_prev)
-        
-        xk_prev = np.copy(xk) # x_{-1}
+
+        xk_prev = np.copy(xk)        
         xk = proxR(gamma, yk - gamma*gradF(yk))
         xk_diff = np.linalg.norm(xk - xk_prev)
         

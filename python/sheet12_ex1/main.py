@@ -41,7 +41,11 @@ tol = 10e-6
 n_repetitions = 100
 max_iter = 500
 
+# TODO: parallelize this code
 for s in range(1, m+1):
+    print("n: {}, sparsity: {}".format(n, s))
+
+    # TODO: write results to .JSON
     x_fre_bp     = []
     x_fre_omp    = []
     x_fre_mp     = []
@@ -51,60 +55,75 @@ for s in range(1, m+1):
     x_fre_htp    = []
     x_fre_sp     = []
 
-    # TODO: add counters for "TOL not reached"
+    # TODO: keep tabs on how often an algorithm failed to reach TOL
     for k, x in enumerate(generate_problems(n, s, n_repetitions)):
         b = A @ x
 
         # 1. basis pursuit
-        print("n: {}, sparsity: {}, k: {}, basis pursuit".format(n, s, k))
         xh = algorithms.basis_pursuit(A, b)
         x_fre_bp.append(recovery_error(x, xh))
 
         # 2. orthogonal matching pursuit
-        print("n: {}, sparsity: {}, k: {}, OMP".format(n, s, k))
         xh, conv = algorithms.OMP(A, b, tol_res=tol)
-        if conv is False:
-            print("warning: TOL not reached") # TODO: add norm(residual) to message
+        # if conv is False:
+        #     print("warning: TOL not reached")
         x_fre_omp.append(recovery_error(x, xh))
 
         # 3. matching pursuit
-        print("n: {}, sparsity: {}, k: {}, MP".format(n, s, k))
         xh, conv = algorithms.MP(A, b, tol_res=tol)
-        if conv is False:
-            print("warning: TOL not reached")
+        # if conv is False:
+        #     print("warning: TOL not reached")
         x_fre_mp.append(recovery_error(x, xh))
 
         # 4. iterative hard thresholding
-        print("n: {}, sparsity: {}, k: {}, IHT".format(n, s, k))
         xh, conv = algorithms.IHT(A, b, s, tol_res=tol)
-        if conv is False:
-            print("warning: TOL not reached")
+        # if conv is False:
+        #     print("warning: TOL not reached")
         x_fre_iht.append(recovery_error(x, xh))
 
         # 5. compressive sampling matching pursuit
-        print("n: {}, sparsity: {}, k: {}, CoSaMP".format(n, s, k))
         xh, conv = algorithms.CoSaMP(A, b, s, tol_res=tol)
-        if conv is False:
-            print("warning: TOL not reached")
+        # if conv is False:
+        #     print("warning: TOL not reached")
         x_fre_cosamp.append(recovery_error(x, xh))
         
         # 6. basic thresholding
-        print("n: {}, sparsity: {}, k: {}, BT".format(n, s, k))
         xh = algorithms.BT(A, b, s)
         x_fre_bt.append(recovery_error(x, xh))
 
         # 7. hard thresholding pursuit
-        print("n: {}, sparsity: {}, k: {}, HTP".format(n, s, k))
         xh, conv = algorithms.HTP(A, b, s, tol_res=tol)
-        if conv is False:
-            print("warning: TOL not reached")
+        # if conv is False:
+        #     print("warning: TOL not reached")
         x_fre_htp.append(recovery_error(x, xh))
         
         # 8. subspace pursuit
-        print("n: {}, sparsity: {}, k: {}, SP".format(n, s, k))
         xh, conv = algorithms.SP(A, b, s, tol_res=tol)
-        if conv is False:
-            print("warning: TOL not reached")
+        # if conv is False:
+        #     print("warning: TOL not reached")
         x_fre_sp.append(recovery_error(x, xh))
 
-        break
+    # Summarize results for sparsity level s
+    avg_bp = np.mean(x_fre_bp)
+    print("n: {}, sparsity: {}, basis pursuit, average error: {}".format(n, s, avg_bp))
+    
+    avg_omp = np.mean(x_fre_omp)    
+    print("n: {}, sparsity: {}, OMP, average error: {}".format(n, s, avg_omp))
+    
+    avg_mp = np.mean(x_fre_mp)
+    print("n: {}, sparsity: {}, MP, average error: {}".format(n, s, avg_mp))
+    
+    avg_iht = np.mean(x_fre_iht)
+    print("n: {}, sparsity: {}, IHT, average error: {}".format(n, s, avg_iht))
+    
+    avg_cosamp = np.mean(x_fre_cosamp)
+    print("n: {}, sparsity: {}, CoSaMP, average error: {}".format(n, s, avg_cosamp))
+    
+    avg_bt = np.mean(x_fre_bt)
+    print("n: {}, sparsity: {}, BT, average error: {}".format(n, s, avg_bt))
+    
+    avg_htp = np.mean(x_fre_htp)
+    print("n: {}, sparsity: {}, HTP, average error: {}".format(n, s, avg_htp))
+    
+    avg_sp = np.mean(x_fre_sp)
+    print("n: {}, sparsity: {}, SP, average error: {}".format(n, s, avg_sp))

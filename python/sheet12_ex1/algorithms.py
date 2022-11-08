@@ -257,7 +257,7 @@ def BT(A, b, s, rule='lex', rcond=1e-15):
     # precondition checks
     assert m == len(b), "A and b have incompatible dimensions"
 
-    S = np.nonzero(threshold(A.T @ b, s, rule))  # support set
+    S = np.nonzero(threshold(A.T @ b, s, rule))[0]  # support set
     x = np.zeros(n)
 
     # orthogonal projection on S
@@ -316,7 +316,6 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
         # termination criterion
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
-        print(np.linalg.norm(r))
     
     if tol_res is None:
         converged = None
@@ -372,7 +371,7 @@ def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
     r = b - A@x
 
     for k in range(0, max_iter):
-        S  = np.nonzero(threshold(x + A.T@r, s, rule))  # support set
+        S  = np.nonzero(threshold(x + A.T@r, s, rule))[0]  # support set
 
         # orthogonal projection
         x = np.zeros(n)
@@ -446,7 +445,7 @@ def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None
 
     for k in range(0, max_iter):
         # preliminary support set
-        S = np.hstack((np.nonzero(x), np.nonzero(threshold(A.T@r, 2*s, rule))))
+        S = np.hstack((np.nonzero(x)[0], np.nonzero(threshold(A.T@r, 2*s, rule))[0]))
 
         # orthogonal projection
         u = np.zeros(n)
@@ -518,14 +517,14 @@ def SP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
 
     for k in range(0, max_iter):
         # preliminary support set
-        U = np.hstack((np.nonzero(x), np.nonzero(threshold(A.T@r, s, rule))))
+        U = np.hstack((np.nonzero(x)[0], np.nonzero(threshold(A.T@r, s, rule))[0]))
 
         # orthogonal projection
         u = np.zeros(n)
         u[U] = np.linalg.pinv(A[:, U], rcond=rcond) @ b
         
         # thresholding and second projection step
-        S = np.nonzero(threshold(u, s))
+        S = np.nonzero(threshold(u, s, rule))[0]
         x = np.zeros(n)
 
         x[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b

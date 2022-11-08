@@ -62,6 +62,8 @@ def face_recognition(files, imsize, dictsize, n_trials, noise_mean=0, noise_stdd
     np.random.seed(seed=seed)
 
     # Select dsize<i> random images for the dictionary
+    # TODO: sample persons, instead images? (uniform distribution of faces in dictionary)
+    # -> use people dictionary as input argument (see filter_data.py)
     samples = np.random.permutation(len(files))[:dictsize]
     colsize = len(samples)
     
@@ -198,7 +200,7 @@ def run_trials(files, method, B, L, starting_points, candidates, lmb, dsize, max
 
 # %% LFW images with deep funneling
 files = glob("data/*")
-assert(len(files) == 13233)
+assert(len(files) > 2000)
 imsize = 250*250
 
 # %% Setup phase
@@ -224,7 +226,7 @@ if __name__ == "__main__":
     # optional arguments
     parser.add_argument("--seed", type=int, default=42, help="value for np.random.seed()")
     parser.add_argument("--tol", type=float, default=1e-4, help="threshold for difference ||x{k} - x{k-1}||")
-    parser.add_argument("--parameter", type=float, default=1e-6, help="value of the regularization parameter")
+    parser.add_argument("--lambda", type=float, default=1e-6, dest='parameter', help="value of the regularization parameter")
     parser.add_argument("--n-trials", type=int, default=5, help="number of images checked with dictionary")
     parser.add_argument("--method", type=str, default='fista_mod', choices=['fista', 'fista_mod', 'fista_rada', 'fista_greedy', 'fista_cd'], 
                         help='fista algorithm used for numeric tests')

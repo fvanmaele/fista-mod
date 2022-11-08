@@ -8,6 +8,7 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+
 from scipy.io import mmread
 from skimage import io
 from skimage.color import rgb2gray
@@ -15,7 +16,7 @@ import scipy.sparse as sparse
 
 # %%
 files = glob("data/*")
-assert(len(files) == 13233)
+#assert(len(files) == 13233)
 imsize = 250*250
 
 # %%
@@ -28,9 +29,18 @@ for trial in fista_mod:
         trials.append(json.load(j))
 
 # %%
-B = mmread('B_dsize1000_seed42_imsize62500_files13233.mtx')
-B = sparse.csc_matrix(B)
+B = mmread('B_dsize1000_seed42_imsize62500_files{}.mtx'.format(len(files)))
+#B = sparse.csc_matrix(B)
 
 # %%
-exp1 = trials[8]  # converged in ~3k iterations to tolerance 1e-4, lambda 1e-4
-xk1 = exp1['solution']
+exp1 = trials[0]
+xk1  = exp1['solution']
+
+# %%
+plt.imshow((B@xk1).reshape(250, 250))
+
+# %%
+plt.imshow(rgb2gray(io.imread(files[1520])))
+
+# %%
+plt.plot(range(0, 1000), xk1)

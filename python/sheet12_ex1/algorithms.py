@@ -46,6 +46,8 @@ def basis_pursuit(A, b, nn=False, verbose=False):
     return u.value
         
 
+# TODO: return number of iterations for each (greedy) algorithm, norm of residual
+
 def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
     """
     Orthogonal matching pursuit is a greedy method which starts from an empty support set, and
@@ -106,8 +108,15 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
         # termination criterium
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
-            
-    return x
+        
+    if tol_res is None:
+        converged = None
+    elif k == max_iter-1:
+        converged = False
+    else:
+        converged = True
+
+    return x, converged
 
 
 def MP(A, b, max_iter=500, tol_res=None):
@@ -161,7 +170,14 @@ def MP(A, b, max_iter=500, tol_res=None):
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
     
-    return x
+    if tol_res is None:
+        converged = None
+    elif k == max_iter-1:
+        converged = False
+    else:
+        converged = True
+
+    return x, converged
 
 
 def threshold(x, s, rule, seed=None):
@@ -304,7 +320,14 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
     
-    return x
+    if tol_res is None:
+        converged = None
+    elif k == max_iter-1:
+        converged = False
+    else:
+        converged = True
+
+    return x, converged
 
     
 def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
@@ -365,7 +388,14 @@ def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
     
-    return x
+    if tol_res is None:
+        converged = None
+    elif k == max_iter-1:
+        converged = False
+    else:
+        converged = True
+
+    return x, converged
 
 
 def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
@@ -389,10 +419,16 @@ def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None
         Right-hand side of dimension m.
     s : int
         Sparsity level of the solution x.
-    max_iter : int
-        Maximum number of iterations before terminating the algorithm. Defaults to 500.
     x0 : np.array
         Starting vector of dimension n, typically 0 or s-sparse.
+    rule : str, optional
+        Rule used for solving ties with the thresholding operator. Defaults to 'lex'.
+    max_iter : int, optional
+        Maximum number of iterations before terminating the algorithm. Defaults to 500.
+    rcond : float, optional
+        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
+    tol_res : float, optional
+        Terminate when ||b - Ax(k)||_2 is less than the given tolerance. Defaults to None
     
     Returns
     -------
@@ -426,8 +462,15 @@ def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None
         # termination criterion
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
-        
-    return x
+    
+    if tol_res is None:
+        converged = None
+    elif k == max_iter-1:
+        converged = False
+    else:
+        converged = True
+
+    return x, converged
 
 
 def SP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
@@ -494,5 +537,12 @@ def SP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
         # termination criterion
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
-        
-    return x
+    
+    if tol_res is None:
+        converged = None
+    elif k == max_iter-1:
+        converged = False
+    else:
+        converged = True
+
+    return x, converged

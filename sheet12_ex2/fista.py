@@ -206,6 +206,7 @@ def fista_mod(L, x0, p, q, r, proxR, gradF, max_iter=500, tol_sol=None):
         xk_diff = np.linalg.norm(xk - xk_prev)
         
         # termination criterion
+        print("FISTAmod: {} (iter {})".format(xk_diff, k))
         if tol_sol is not None and xk_diff < tol_sol:
             break
 

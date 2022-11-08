@@ -47,7 +47,8 @@ smp = np.random.permutation(len(files))[:dsize1]
 
 # %% Load images into dictionary
 B = sparse.hstack([sparse.csc_matrix(image_dictionary(files, imsize, smp)), sparse.eye(imsize)])
-L = sparse.linalg.norm(B.T)
+BtB = B.T @ B
+L = sparse.linalg.norm(BtB)
 
 # %% Choose 20 different input images 'b' that are not in the dictionary
 candidates = np.setdiff1d(range(0, len(files)), smp)
@@ -64,7 +65,7 @@ for b in candidates:
     
     for x0_i in range(0, x0_v.shape[1]):
         x0 = x0_v[:, x0_i]
-        fista_bt(L, x0, soft_thresholding, gradF, max_iter=20, tol_sol=None)
+        fista_mod(L, x0, 1/20, 1/2, 4, soft_thresholding, gradF, max_iter=2000, tol_sol=None)
         break
     break
         

@@ -25,8 +25,8 @@ for idx, image in enumerate(images):
         people[person] = [idx]
         
 # %% Remove images with less than X occurences
-min_samples = 5
-max_samples = 20
+min_samples = 4
+max_samples = 12
 filtered = {}
 
 for person in people:

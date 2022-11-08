@@ -46,7 +46,7 @@ def basis_pursuit(A, b, nn=False, verbose=False, complex=False):
     return x.value
 
 
-def OMP(A, b, max_iter=500, tol_res=None):
+def OMP(A, b, max_iter=100, tol_res=None):
     """
     Orthogonal matching pursuit is a greedy method which starts from an empty support set, and
     adds an index at every step. It does so by finding the maximum correlation between columns of A
@@ -89,7 +89,7 @@ def OMP(A, b, max_iter=500, tol_res=None):
     S = np.array([], dtype=int)
     r = np.copy(b)
 
-    for k in range(0, max_iter):
+    for k in range(1, max_iter+1):
         j = np.argmax(np.abs(A.conj().T @ r))  # maximum correlation
         S = np.append(S, j)  # update index set
 
@@ -111,10 +111,10 @@ def OMP(A, b, max_iter=500, tol_res=None):
     else:
         converged = True
 
-    return x, converged
+    return x, converged, k
 
  
-def MP(A, b, max_iter=500, tol_res=None):
+def MP(A, b, max_iter=100, tol_res=None):
     """
     A greedy strategy that does not involve any orthogonal projection. Unlike OMP, only the
     component associated with the currently selected column is updated:
@@ -141,6 +141,11 @@ def MP(A, b, max_iter=500, tol_res=None):
     -------
     np.array
         Sparse representation x(k) approximately solving b = Ax.
+    bool, None
+        If tol_res is set, return False if the maximum number of iterations is exceeded; return
+        True when not. If tol_res is None, return None.
+    int
+        Number of iterations done.
 
     """
     m, n = np.shape(A)
@@ -152,7 +157,7 @@ def MP(A, b, max_iter=500, tol_res=None):
     x = np.zeros(n, dtype=A.dtype)
     r = np.copy(b)
     
-    for k in range(0, max_iter):
+    for k in range(1, max_iter+1):
         j = np.argmax(np.abs(A.conj().T @ r))      # maximum correlation
         t = A[:, j].conj().T @ r
         x[j] = x[j] + t
@@ -171,7 +176,7 @@ def MP(A, b, max_iter=500, tol_res=None):
     else:
         converged = True
 
-    return x, converged
+    return x, converged, k
 
 
 def hard_threshold(x, s):
@@ -245,7 +250,7 @@ def BT(A, b, s):
     return x
 
 
-def IHT(A, b, s, x0=None, mu=1, max_iter=500, tol_res=None, adaptive=False):
+def IHT(A, b, s, x0=None, mu=1, max_iter=100, tol_res=None, adaptive=False):
     """
     Iterative hard thresholding is an iterative algorithm to solve the rectangular system
         A' Az = A'b
@@ -253,7 +258,7 @@ def IHT(A, b, s, x0=None, mu=1, max_iter=500, tol_res=None, adaptive=False):
     knowing that the solution is s-sparse. This equation can be interpreted as the fixed point equation
         z = (I - A' A)x + A' b
              
-    Only the s largest absolute emax_iter=500,ntries are kept at each iteration.
+    Only the s largest absolute entries are kept at each iteration.
 
     Parameters
     ----------
@@ -274,6 +279,11 @@ def IHT(A, b, s, x0=None, mu=1, max_iter=500, tol_res=None, adaptive=False):
     -------
     np.array
         s-sparse vector approximately solving the linear system Ax = b.
+    bool, None
+        If tol_res is set, return False if the maximum number of iterations is exceeded; return
+        True when not. If tol_res is None, return None.
+    int
+        Number of iterations done.
 
     """
     m, n = np.shape(A)
@@ -286,7 +296,7 @@ def IHT(A, b, s, x0=None, mu=1, max_iter=500, tol_res=None, adaptive=False):
         x = np.copy(x0)
     r = b - A@x
 
-    for k in range(0, max_iter):
+    for k in range(1, max_iter+1):
         g = A.conj().T @ r
         
         if adaptive is True:
@@ -311,10 +321,10 @@ def IHT(A, b, s, x0=None, mu=1, max_iter=500, tol_res=None, adaptive=False):
     else:
         converged = True
 
-    return x, converged
+    return x, converged, k
 
     
-def HTP(A, b, s, x0=None, max_iter=500, tol_res=None):
+def HTP(A, b, s, x0=None, max_iter=100, tol_res=None):
     """
     Iterative hard thresholding is a variation of IHT which computes an orthogonal projection 
     in each step.
@@ -340,7 +350,12 @@ def HTP(A, b, s, x0=None, max_iter=500, tol_res=None):
     Returns
     -------
     np.array
-        s-sparse vector approximating a solution of the linear system A' Az = A' b.
+        s-sparse vector approximately solving the linear system Ax = b.
+    bool, None
+        If tol_res is set, return False if the maximum number of iterations is exceeded; return
+        True when not. If tol_res is None, return None.
+    int
+        Number of iterations done.
 
     """
     m, n = np.shape(A)
@@ -353,7 +368,7 @@ def HTP(A, b, s, x0=None, max_iter=500, tol_res=None):
         x = np.copy(x0)
     r = b - A@x
 
-    for k in range(0, max_iter):
+    for k in range(1, max_iter+1):
         S = np.nonzero(hard_threshold(x + A.conj().T @ r, s))[0]  # support set
 
         # orthogonal projection
@@ -374,10 +389,10 @@ def HTP(A, b, s, x0=None, max_iter=500, tol_res=None):
     else:
         converged = True
 
-    return x, converged
+    return x, converged, k
 
 
-def CoSaMP(A, b, s, x0=None, max_iter=500, tol_res=None):
+def CoSaMP(A, b, s, x0=None, max_iter=100, tol_res=None):
     """
     Compressive sampling matching pursuit (CoSaMP) keeps track of the active support set S(k+1),
     and adds as well as removes elements in each iteration. An estimate of the solution sparsity
@@ -408,6 +423,12 @@ def CoSaMP(A, b, s, x0=None, max_iter=500, tol_res=None):
     Returns
     -------
     np.array
+        s-sparse vector approximately solving the linear system Ax = b.
+    bool, None
+        If tol_res is set, return False if the maximum number of iterations is exceeded; return
+        True when not. If tol_res is None, return None.
+    int
+        Number of iterations done.
 
     """
     m, n = np.shape(A)
@@ -422,7 +443,7 @@ def CoSaMP(A, b, s, x0=None, max_iter=500, tol_res=None):
         x = np.copy(x0)
     r = b - A@x
 
-    for k in range(0, max_iter):
+    for k in range(1, max_iter+1):
         # preliminary support set
         S = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, 2*s))[0]))
 
@@ -445,10 +466,10 @@ def CoSaMP(A, b, s, x0=None, max_iter=500, tol_res=None):
     else:
         converged = True
 
-    return x, converged
+    return x, converged, k
 
 
-def SP(A, b, s, x0=None, max_iter=500, tol_res=None):
+def SP(A, b, s, x0=None, max_iter=100, tol_res=None):
     """
     CoSaMP and subspace pursuit differ in the following:
     
@@ -477,6 +498,12 @@ def SP(A, b, s, x0=None, max_iter=500, tol_res=None):
     -------
     np.array
         s-sparse vector approximating a solution of the linear system Ax = b.
+    bool, None
+        If tol_res is set, return False if the maximum number of iterations is exceeded; return
+        True when not. If tol_res is None, return None.
+    int
+        Number of iterations done.
+
     """
     m, n = np.shape(A)
     # precondition checks
@@ -490,7 +517,7 @@ def SP(A, b, s, x0=None, max_iter=500, tol_res=None):
         x = np.copy(x0)
     r = b - A@x
 
-    for k in range(0, max_iter):
+    for k in range(1, max_iter+1):
         # preliminary support set
         U = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, s))[0]))
 
@@ -516,4 +543,4 @@ def SP(A, b, s, x0=None, max_iter=500, tol_res=None):
     else:
         converged = True
 
-    return x, converged
+    return x, converged, k

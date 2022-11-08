@@ -6,10 +6,10 @@ Collection of algorithms for Compressed Sensing, Sheet 12, Exercise 1.
 @author: Ferdinand Vanmaele
 """
 
-def basis_pursuit(A, b, nn=False, verbose=False):
+def basis_pursuit(A, b, nn=False, verbose=False, complex=False):
     """
     Solve the l1 minimization problem:  (P1)
-        min ||x||_1  s.t.  Ax = b
+        min ||x||_1  s.H.  Ax = b
     
     Iff A has the null-space property of order s \in [n], then basis pursuit recovers the 
     sparsest solution to b = Ax.
@@ -32,7 +32,7 @@ def basis_pursuit(A, b, nn=False, verbose=False):
 
     """
     n = np.shape(A)[1]
-    x = cp.Variable(n)
+    x = cp.Variable(n, complex=complex)
 
     cost = cp.norm(x, 1)
     if nn is True:
@@ -44,12 +44,9 @@ def basis_pursuit(A, b, nn=False, verbose=False):
     prob.solve(verbose=verbose)
     
     return x.value
-        
 
-# TODO: return number of iterations for each (greedy) algorithm, norm of residual
-# -> +documentation updates
 
-def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
+def OMP(A, b, max_iter=500, tol_res=None):
     """
     Orthogonal matching pursuit is a greedy method which starts from an empty support set, and
     adds an index at every step. It does so by finding the maximum correlation between columns of A
@@ -62,7 +59,7 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
 
     Every nonzero s-sparse vector with S = supp(x) of size s is recovered from b = Ax after 
     at most s iterations, if and only if the exact recovery condition (ERC) is fulfilled:
-        ||pinv(A)[:, S] @ A[:, Sc]||_1 < 1
+        ||(A+)[:, S] @ A[:, Sc]||_1 < 1
 
     Parameters
     ----------
@@ -75,8 +72,6 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
         Maximum number of iterations before terminating the algorithm. Defaults to 500.
     tol_res : float, optional
         Terminate when ||b - Ax(k)||_2 is less than the given tolerance. Defaults to None.
-    rcond : float, optional
-        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
 
     Returns
     -------
@@ -90,17 +85,17 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
     # expensive check, disable with `python -O`
     assert np.all(np.isclose(np.linalg.norm(A, axis=0), np.ones(n))), "columns of A are not normalized"
     
-    x = np.zeros(n)
+    x = np.zeros(n, dtype=A.dtype)
     S = np.array([], dtype=int)
     r = np.copy(b)
 
     for k in range(0, max_iter):
-        j = np.argmax(np.abs(A.T @ r))  # maximum correlation
-        S = np.append(S, j)     # update index set
+        j = np.argmax(np.abs(A.conj().T @ r))  # maximum correlation
+        S = np.append(S, j)  # update index set
 
         # orthogonal projection
-        x = np.zeros(n)
-        x[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b
+        x = np.zeros(n, dtype=A.dtype)
+        x[S] = np.linalg.pinv(A[:, S]) @ b
         
         # update residual
         r = b - A@x
@@ -118,7 +113,7 @@ def OMP(A, b, max_iter=500, rcond=1e-15, tol_res=None):
 
     return x, converged
 
-
+ 
 def MP(A, b, max_iter=500, tol_res=None):
     """
     A greedy strategy that does not involve any orthogonal projection. Unlike OMP, only the
@@ -154,12 +149,12 @@ def MP(A, b, max_iter=500, tol_res=None):
     # expensive check, disable with `python -O`
     assert np.all(np.isclose(np.linalg.norm(A, axis=0), np.ones(n))), "columns of A are not normalized"
     
-    x = np.zeros(n)
+    x = np.zeros(n, dtype=A.dtype)
     r = np.copy(b)
     
     for k in range(0, max_iter):
-        j = np.argmax(np.abs(A.T @ r))      # maximum correlation
-        t = A[:, j].T @ r
+        j = np.argmax(np.abs(A.conj().T @ r))      # maximum correlation
+        t = A[:, j].conj().T @ r
         x[j] = x[j] + t
 
         # update residual
@@ -179,9 +174,11 @@ def MP(A, b, max_iter=500, tol_res=None):
     return x, converged
 
 
-def threshold(x, s, rule, seed=None):
+def hard_threshold(x, s):
     """
-    Hard thresholding operator.
+    Hard thresholding operator which keeps the s entries of largest magnitude (absolute value).
+    Remaining values are set to zero. The lexicograph ordering is taken to solve ties, that is
+    when several elements have the same magnitude.
 
     Parameters
     ----------
@@ -189,39 +186,24 @@ def threshold(x, s, rule, seed=None):
         Input vector of dimension n >= s.
     s : int
         Number of entries with largest magnitudes that should be kept.
-    rule : str
-        Rule to resolve ties when elements have the same magnitudes. Can be one of 'lex' for
-        lexicographic order, 'lex_reverse' for reverse lexicographic order, or 'random' for
-        a random selection.
-    seed : int, optional
-        The seed used with rule='random'. Defaults to None.
 
     Returns
     -------
     np.array
-        s entries of x with the largest magnitudes set to zero.
 
     """
     # precondition checks
     assert s > 0, "s must be a positive value"
     assert s <= x.size, "s must not exceed the length of x"
-    Tx = np.zeros(x.size)
 
-    if rule == 'lex':
-        idx = np.flip(np.argsort(x))[:s]   
-    elif rule == 'lex_reverse':
-        idx = np.argsort(np.flip(x))[:s]
-    elif rule == 'random':
-        np.random.seed(seed)
-        idx = np.flip(np.lexsort((np.random.random(x.size), x)).argsort())
-    else:
-        raise ValueError
-    
-    Tx[idx] = x[idx]
+    Tx  = np.zeros(x.size, dtype=x.dtype)
+    idx = np.flip(np.argsort(np.abs(x), kind='stable'))[:s]   
+    Tx[idx] = x[idx]    
+
     return Tx
 
 
-def BT(A, b, s, rule='lex', rcond=1e-15):
+def BT(A, b, s):
     """
     The basic thresholding algorithm consists in determinign the support of the s-sparse vector x
     to be recovered from the measurement vector b = Ax, as the indices of s largest absolute
@@ -242,10 +224,6 @@ def BT(A, b, s, rule='lex', rcond=1e-15):
         Measurement vector of dimension m.
     s : int
         Sparsity level of the solution x.
-    rule : str, optional
-        Rule used for solving ties with the thresholding operator. Defaults to 'lex'.
-    rcond : float, optional
-        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
 
     Returns
     -------
@@ -257,16 +235,17 @@ def BT(A, b, s, rule='lex', rcond=1e-15):
     # precondition checks
     assert m == len(b), "A and b have incompatible dimensions"
 
-    S = np.nonzero(threshold(A.T @ b, s, rule))[0]  # support set
-    x = np.zeros(n)
+    # thresholding step
+    S = np.nonzero(hard_threshold(A.conj().T @ b, s))[0]  # support set
 
     # orthogonal projection on S
-    x[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b
+    x = np.zeros(n, dtype=A.dtype)
+    x[S] = np.linalg.pinv(A[:, S]) @ b
 
     return x
 
 
-def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
+def IHT(A, b, s, x0=None, mu=1, max_iter=500, tol_res=None, adaptive=False):
     """
     Iterative hard thresholding is an iterative algorithm to solve the rectangular system
         A' Az = A'b
@@ -286,17 +265,15 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
         Sparsity level of the solution x.
     x0 : np.array, optional
         Starting vector of dimension n, typically 0 or s-sparse.
-    rule : str, optional
-        Rule used for solving ties with the thresholding operator. Defaults to 'lex'.
+    mu : float, optional
+        Step size applied to A'(Ax - b). Defaults to 1.
     max_iter : int, optional
         Maximum number of iterations before terminating the algorithm. Defaults to 500.
-    rcond : float, optional
-        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
 
     Returns
     -------
     np.array
-        s-sparse vector approximating a solution of the linear system A' Az = A'b.
+        s-sparse vector approximately solving the linear system Ax = b.
 
     """
     m, n = np.shape(A)
@@ -304,15 +281,25 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
     assert m == len(b), "A and b have incompatible dimensions"
 
     if x0 is None:
-        x = np.zeros(n)
+        x = np.zeros(n, dtype=A.dtype)
     else:
         x = np.copy(x0)
     r = b - A@x
 
     for k in range(0, max_iter):
-        x = threshold(x + A.T@r, s, rule)
-        r = b - A@x
+        g = A.conj().T @ r
         
+        if adaptive is True:
+            if np.nonzero(x)[0].size == 0:
+                T = np.nonzero(hard_threshold(g, s))[0]
+            else:
+                T = np.nonzero(hard_threshold(x, s))[0]  # support of s-best term approximation to x
+
+            mu = np.linalg.norm(g[T])**2 / np.linalg.norm(A[:, T] @ g[T])**2            
+
+        x = hard_threshold(x + mu * g, s)
+        r = b - A@x
+
         # termination criterion
         if tol_res is not None and np.linalg.norm(r) < tol_res:
             break
@@ -327,7 +314,7 @@ def IHT(A, b, s, x0=None, rule='lex', max_iter=500, tol_res=None):
     return x, converged
 
     
-def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
+def HTP(A, b, s, x0=None, max_iter=500, tol_res=None):
     """
     Iterative hard thresholding is a variation of IHT which computes an orthogonal projection 
     in each step.
@@ -345,12 +332,8 @@ def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
         Sparsity level of the solution x.
     x0 : np.array
         Starting vector of dimension n, typically 0 or s-sparse.
-    rule : str, optional
-        Rule used for solving ties with the thresholding operator. Defaults to 'lex'.
     max_iter : int, optional
         Maximum number of iterations before terminating the algorithm. Defaults to 500.
-    rcond : float, optional
-        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
     tol_res : float, optional
         Terminate when ||b - Ax(k)||_2 is less than the given tolerance. Defaults to None.
 
@@ -365,17 +348,17 @@ def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
     assert m == len(b), "A and b have incompatible dimensions"
 
     if x0 is None:
-        x = np.zeros(n)
+        x = np.zeros(n, dtype=A.dtype)
     else:
         x = np.copy(x0)
     r = b - A@x
 
     for k in range(0, max_iter):
-        S  = np.nonzero(threshold(x + A.T@r, s, rule))[0]  # support set
+        S = np.nonzero(hard_threshold(x + A.conj().T @ r, s))[0]  # support set
 
         # orthogonal projection
-        x = np.zeros(n)
-        x[S]  = np.linalg.pinv(A[:, S], rcond=rcond) @ b
+        x = np.zeros(n, dtype=A.dtype)
+        x[S] = np.linalg.pinv(A[:, S]) @ b
 
         # compute residual for next step
         r = b - A@x
@@ -394,7 +377,7 @@ def HTP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
     return x, converged
 
 
-def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
+def CoSaMP(A, b, s, x0=None, max_iter=500, tol_res=None):
     """
     Compressive sampling matching pursuit (CoSaMP) keeps track of the active support set S(k+1),
     and adds as well as removes elements in each iteration. An estimate of the solution sparsity
@@ -417,12 +400,8 @@ def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None
         Sparsity level of the solution x.
     x0 : np.array
         Starting vector of dimension n, typically 0 or s-sparse.
-    rule : str, optional
-        Rule used for solving ties with the thresholding operator. Defaults to 'lex'.
     max_iter : int, optional
         Maximum number of iterations before terminating the algorithm. Defaults to 500.
-    rcond : float, optional
-        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
     tol_res : float, optional
         Terminate when ||b - Ax(k)||_2 is less than the given tolerance. Defaults to None
     
@@ -438,21 +417,21 @@ def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None
     assert np.all(np.isclose(np.linalg.norm(A, axis=0), np.ones(n))), "columns of A are not normalized"
     
     if x0 is None:
-        x = np.zeros(n)
+        x = np.zeros(n, dtype=A.dtype)
     else:
         x = np.copy(x0)
     r = b - A@x
 
     for k in range(0, max_iter):
         # preliminary support set
-        S = np.hstack((np.nonzero(x)[0], np.nonzero(threshold(A.T@r, 2*s, rule))[0]))
+        S = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, 2*s))[0]))
 
         # orthogonal projection
-        u = np.zeros(n)
-        u[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b
+        u = np.zeros(n, dtype=A.dtype)
+        u[S] = np.linalg.pinv(A[:, S]) @ b
         
         # thresholding
-        x = threshold(u, s, rule)
+        x = hard_threshold(u, s)
         r = b - A@x
         
         # termination criterion
@@ -469,7 +448,7 @@ def CoSaMP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None
     return x, converged
 
 
-def SP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
+def SP(A, b, s, x0=None, max_iter=500, tol_res=None):
     """
     CoSaMP and subspace pursuit differ in the following:
     
@@ -489,12 +468,8 @@ def SP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
         Sparsity level of the solution x.
     x0 : np.array, optional
         Starting vector of dimension n, typically 0 or s-sparse.
-    rule : str, optional
-        Rule used for solving ties with the thresholding operator. Defaults to 'lex'.
     max_iter : int, optional
         Maximum number of iterations before terminating the algorithm. Defaults to 500.
-    rcond : float, optional
-        Cutoff for small singular values when computing pseudoinverses. Defaults to 1e-15.
     tol_res : float, optional
         Terminate when ||b - Ax(k)||_2 is less than the given tolerance. Defaults to None.
 
@@ -510,24 +485,24 @@ def SP(A, b, s, x0=None, rule='lex', max_iter=500, rcond=1e-15, tol_res=None):
     assert np.all(np.isclose(np.linalg.norm(A, axis=0), np.ones(n))), "columns of A are not normalized"
     
     if x0 is None:
-        x = np.zeros(n)
+        x = np.zeros(n, dtype=A.dtype)
     else:
         x = np.copy(x0)
     r = b - A@x
 
     for k in range(0, max_iter):
         # preliminary support set
-        U = np.hstack((np.nonzero(x)[0], np.nonzero(threshold(A.T@r, s, rule))[0]))
+        U = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, s))[0]))
 
         # orthogonal projection
-        u = np.zeros(n)
-        u[U] = np.linalg.pinv(A[:, U], rcond=rcond) @ b
+        u = np.zeros(n, dtype=A.dtype)
+        u[U] = np.linalg.pinv(A[:, U]) @ b
         
         # thresholding and second projection step
-        S = np.nonzero(threshold(u, s, rule))[0]
-        x = np.zeros(n)
+        S = np.nonzero(hard_threshold(u, s))[0]
+        x = np.zeros(n, dtype=A.dtype)
 
-        x[S] = np.linalg.pinv(A[:, S], rcond=rcond) @ b
+        x[S] = np.linalg.pinv(A[:, S]) @ b
         r = b - A@x
         
         # termination criterion

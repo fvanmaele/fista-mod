@@ -91,11 +91,11 @@ def sensor_random_partial_fourier(m, n, seed=None):
     # Initialize random state
     np.random.seed(seed)
     
-    # Normalized discrete Fourier transform matrix of dimension n
-    A = sensor_normalize(dft(n), axis=0)
+    # Discrete Fourier transform matrix of dimension n
+    A = dft(n)
     
     # Choose m rows uniformly at random
     idx = np.random.permutation(n)[:m]
 
-    # Construct partial Fourier matrix
-    return A[idx, :]
+    # Construct partial Fourier matrix with normalized columns
+    return sensor_normalize(A[idx, :], axis=0)

@@ -9,13 +9,14 @@ Created on Thu Oct 20 23:37:07 2022
 import numpy as np
 import algorithms
 from sensors import sensor_random, sensor_random_partial_fourier
+import json
 
 # %% Generate matrices with normalized columns
-np.random.seed(42)
+np.random.seed(100)
 n = 2**7
 m = n//2
-A = sensor_random(m, n)
-P = sensor_random_partial_fourier(m, n)
+#A = sensor_random(m, n)
+A = sensor_random_partial_fourier(m, n)
 
 # %% Generate problem instances
 def generate_problems(n, s, n_reps):
@@ -24,24 +25,41 @@ def generate_problems(n, s, n_reps):
         x = np.zeros(n)
         x_nnz = np.random.randn(s)          # nonzero values from standard Gaussian distribution
         S = np.random.permutation(n)[:s]    # nonzero locations uniformly at random
-    
         x[S] = x_nnz
+        
         assert np.nonzero(x)[0].size == s   # sanity check
-        xs.append(np.copy(x))
-    
+        xs.append((np.copy(x), np.copy(S)))
+        
     return xs
 
 def recovery_error(x, xh, ord=None):
     return np.linalg.norm(x - xh, ord=ord) / np.linalg.norm(x)
 
+def exact_recovery_condition(A, S):
+    m, n = A.shape
+    Sc = np.setdiff1d(range(0, n), S)
+    SA_pos = np.linalg.inv(A[:, S].T @ A[:, S]) @ A[:, S].T
+
+    return np.linalg.norm(SA_pos @ A[:, Sc], ord=1) < 1
+
+def coherence(A):
+    m, n = np.shape(A)
+    mu_max = 0
+
+    for i in range(0, n):
+        for j in range(0, i+1):
+            mu = np.abs(A[:, i] @ A[:, j]) / np.linalg.norm(A[:, i]) / np.linalg.norm(A[:, j])
+            if mu > mu_max:
+                mu_max = mu
+    return mu
+
 # %% # Recover xh from measurements b = Ax, for every problem instance of sparsity 1 <= s <= m
-# TODO: repeat experiments for matrix P!
+# TODO: turn into argparse program, called from command-line
 np.random.seed(42)
 tol = 10e-6
 n_repetitions = 100
 max_iter = 500
 
-# TODO: parallelize this code
 for s in range(1, m+1):
     print("n: {}, sparsity: {}".format(n, s))
 
@@ -56,8 +74,13 @@ for s in range(1, m+1):
     x_fre_sp     = []
 
     # TODO: keep tabs on how often an algorithm failed to reach TOL
-    for k, x in enumerate(generate_problems(n, s, n_repetitions)):
+    erc_true = 0
+    for k, (x, S) in enumerate(generate_problems(n, s, n_repetitions)):
         b = A @ x
+
+        # exact recovery condition (OMP)
+        erc = exact_recovery_condition(A, S)
+        erc_true = erc_true + 1
 
         # 1. basis pursuit
         xh = algorithms.basis_pursuit(A, b)
@@ -76,7 +99,7 @@ for s in range(1, m+1):
         x_fre_mp.append(recovery_error(x, xh))
 
         # 4. iterative hard thresholding
-        xh, conv = algorithms.IHT(A, b, s, tol_res=tol)
+        xh, conv = algorithms.IHT(A, b, s, adaptive=True, tol_res=tol)
         # if conv is False:
         #     print("warning: TOL not reached")
         x_fre_iht.append(recovery_error(x, xh))
@@ -104,6 +127,8 @@ for s in range(1, m+1):
         x_fre_sp.append(recovery_error(x, xh))
 
     # Summarize results for sparsity level s
+    print("n: {}, sparsity: {}, ERC true: {}".format(n, s, erc_true))
+
     avg_bp = np.mean(x_fre_bp)
     print("n: {}, sparsity: {}, basis pursuit, average error: {}".format(n, s, avg_bp))
     

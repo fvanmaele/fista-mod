@@ -10,6 +10,7 @@ import json
 from glob import glob
 from skimage import io
 from skimage.color import rgb2gray
+from skimage.util import random_noise
 
 from fista import fista, fista_mod, fista_cd
 from face_recognition import soft_thresholding, face_recognition
@@ -30,7 +31,7 @@ def experiment(gen, F=None, R=None, tol=-1):
 
     for k, (xk, xk_prev) in enumerate(gen, start=1):
         sol_diff.append(np.linalg.norm(xk - xk_prev))
-        #print(k, sol_diff[-1])
+        print(k, sol_diff[-1])
 
         if F is not None and R is not None:
             Fxk = F(xk) + R(xk)
@@ -44,19 +45,20 @@ def experiment(gen, F=None, R=None, tol=-1):
         'solution_norm_diff': sol_diff, 
         'objective_norm_diff': obj_diff, 
         'k': k,
-        'solution': xk
+        'solution': xk,
+        'solution_argsort': np.flip(np.argsort(np.abs(xk)))
     }    
     return data
 
 
 # %%
-def run_trial(candidate, method, B, L, x0, sigma, max_iter, tol):
+def run_trial(b, method, B, L, x0, sigma, max_iter, tol):
     """
     Solve the robust face recognition problem with various FISTA modifications.
 
     Parameters
     ----------
-    candidate : list
+    b : np.array
         Face image to be recovered.
     method : str
         Type of algorithm used. Can be one of 'fista', 'fista_mod' or 'fista_cd'.
@@ -103,33 +105,11 @@ def run_trial(candidate, method, B, L, x0, sigma, max_iter, tol):
 
 # %% LFW images with deep funneling
 train_set = glob("data_training/*")
+train_set.sort()
 verification_set = glob("data_verification/*")
+verification_set.sort()
 imsize = 130*130
 
-
-# %% test case
-# B, L = face_recognition(train_set, imsize)
-
-# # select n_trials random images from the verification set
-# files = np.random.choice(verification_set, 1)
-# candidates = []
-# for f in files:
-#     b = io.imread(f)
-#     b = rgb2gray(b).flatten()
-#     candidates.append(np.copy(b))
-
-# %%
-# sigma = 1
-# tol   = 1e-4
-# max_iter = 5000
-# np.random.seed(None)
-# x0 = np.zeros(np.shape(B)[1])
-# #x0 = np.random.randn(np.shape(B)[1])
-# data = run_trial(candidates[0], 'fista_mod', B, L, x0, sigma, max_iter, tol)
-
-# with open("{}_sigma{:>1.1e}_tol{:>1.1e}_img0.json".format('fista_mod', sigma, tol), 'w') as f:
-#     json.dump(data, f, cls=NumpyEncoder)
-    
 # %%
 if __name__ == "__main__":
     import argparse
@@ -140,35 +120,57 @@ if __name__ == "__main__":
     #parser.add_argument("dsize", type=int, help="Number of images selected for the dictionary")
 
     # optional arguments
-    parser.add_argument("--seed", type=int, default=None, help="value for np.random.seed()")
+    parser.add_argument("--seed", type=int, default=42, help="value for np.random.seed()")
     parser.add_argument("--tol", type=float, default=1e-4, help="threshold for difference ||x{k} - x{k-1}||")
     parser.add_argument("--sigma", type=float, default=1, dest='sigma', help="value of the regularization parameter")
     parser.add_argument("--method", type=str, default='fista_mod', choices=['fista', 'fista_mod', 'fista_cd'], 
                         help='fista algorithm used for numeric tests')
-    parser.add_argument("--max-iter", type=str, default=5000, help='maximum number of iterations')
+    parser.add_argument("--max-iter", type=int, default=10000, help='maximum number of iterations')
     
     # options for robust face recognition (noise/occlusion)
     parser.add_argument("--robust", action='store_true', help='solve the robust face recognition problem (slow)')
     parser.add_argument("--robust-mean", type=float, default=0, help='mean for noise added to sampled images')
-    parser.add_argument("--robust-stddev", type=float, default=0.05, help='standard deviation for noise added to sampled images')
+    parser.add_argument("--robust-var", type=float, default=0.01, help='variance for noise added to sampled images')
     args = parser.parse_args()
+    np.random.seed(seed=args.seed)
 
     # generate input data
-    B, L = face_recognition(train_set, imsize, seed=args.seed, robust=args.robust, 
-                            noise_mean=args.robust_mean, noise_stddev=args.robust_stddev)
+    print("Constructing dictionary... [robust={}, m={}, n={}]".format(args.robust, imsize, len(train_set)))
+    B, L = face_recognition(train_set, imsize, robust=args.robust)
     x0 = np.zeros(np.shape(B)[1])
 
     # select n_trials random images from the verification set
-    files = np.random.choice(verification_set, args.trials)
+    #files = np.random.choice(verification_set, args.trials)
+    candidates_idx = np.random.choice(range(0, len(verification_set)), args.trials)
     candidates = []
-    for f in files:
-        b = io.imread(f)
+    for sample in candidates_idx:
+        b = io.imread(verification_set[sample])
         b = rgb2gray(b).flatten()
+        if args.robust:
+            b = random_noise(b, mode='gaussian', seed=args.seed,
+                             mean=args.robust_mean, var=args.robust_var)
         candidates.append(np.copy(b))
 
-    for i, c in enumerate(candidates):
-        data = run_trial(c, args.method, B, L, x0, args.sigma, args.max_iter, args.tol)
-        
-        with open("{}_sigma{:>1.1e}_tol{:>1.1e}_img{}.json".format(args.method, args.sigma, args.tol, i), 'w') as f:
+    for i, sample in enumerate(candidates_idx):
+        b = candidates[i]
+        plt.imsave("img{}_input.jpg".format(sample), b.reshape(130, 130), cmap='gray')
+        data = run_trial(b, args.method, B, L, x0, args.sigma, args.max_iter, args.tol)
+
+        basename = "img{}_{}_sigma{:>1.1e}_tol{:>1.1e}".format(
+            sample, args.method, args.sigma, args.tol)
+
+        if args.robust:
+            basename += "_robust"
+
+        plt.imsave(basename + "_recovered.jpg",
+                   (B @ data['solution']).reshape(130, 130), cmap='gray')
+        plt.imsave(basename + "_recognized1.jpg",
+                   B[:, data['solution_argsort'][0]].reshape(130, 130), cmap='gray')
+        plt.imsave(basename + "_recognized2.jpg",
+                   B[:, data['solution_argsort'][1]].reshape(130, 130), cmap='gray')
+        plt.imsave(basename + "_recognized3.jpg",
+                   B[:, data['solution_argsort'][2]].reshape(130, 130), cmap='gray')
+
+        with open(basename + ".json", 'w') as f:
             json.dump(data, f, cls=NumpyEncoder)
-            
+

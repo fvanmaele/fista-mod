@@ -44,6 +44,8 @@ def experiment(gen, F=None, R=None, tol=-1):
         if xdiff < tol:
             break
 
+    # XXX: for robust face recognition, indices should be taken from the first m
+    # entries (i.e. w* = [x*', e*']')
     data = {
         'solution_norm_diff': sol_diff, 
         'objective_norm_diff': obj_diff, 

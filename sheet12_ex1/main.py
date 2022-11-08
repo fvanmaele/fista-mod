@@ -115,9 +115,6 @@ def generate_problems(n, s_min, s_max, n_reps, seed=None):
     return xs
 
 
-# %% Recover xh from measurements b = Ax, for every problem instance of sparsity 1 <= s <= m
-trials = generate_problems(n, s_min, s_max, n_repetitions, seed=None)
-
 # %% 1. basis pursuit (l1-minimization)
 def main_basis_pursuit(trials, *args):
     avg_bp = []
@@ -170,7 +167,6 @@ def main_omp(trials, tol, *args):
             
             ts_elapsed.append(ts_stop - ts_start)
     
-        print(iters_omp)
         avg_omp.append(np.mean(x_fre_omp))
         avg_omp_ts.append(np.mean(ts_elapsed))
         avg_erc.append(np.mean(erc))
@@ -304,7 +300,7 @@ def main_bt(trials, *args):
 
 
 # %% 7. hard thresholding pursuit
-def main_htp(trials, tol, *args)
+def main_htp(trials, tol, *args):
     avg_htp = []
     avg_htp_ts = []
     
@@ -343,7 +339,7 @@ def main_sp(trials, tol, *args):
         x_fre_sp = []
         iters_sp = []
         ts_elapsed = []
-
+        
         for x, S in Trial:
             b = A @ x
             ts_start = process_time()
@@ -381,7 +377,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-trials", type=int, default=100, help="repetitions for each sparsity value")
     parser.add_argument("--s-max", type=int, default=None, help="maximum sparsity level (defaults to m)")
     parser.add_argument("--s-min", type=int, default=None, help="minimum sparsity level (defaults to 1)")
-    parser.add_argument("--include", type=str, default='all', help="list of algorithms to test (starts from 1, comma separation)")
+    parser.add_argument("--problem", type=str, default='all', help="list of algorithms to test (starts from 1, comma separation)")
     args = parser.parse_args()
 
     # Assign command-line arguments
@@ -403,7 +399,10 @@ if __name__ == "__main__":
 
     s_max = m if args.s_max is None else args.s_max
     s_min = 1 if args.s_min is None else args.s_min
-    to_solve = problem_range(args.include)
+    to_solve = problem_range(args.problem)
+
+    # %% Recover xh from measurements b = Ax, for every problem instance of sparsity 1 <= s <= m
+    trials = generate_problems(n, s_min, s_max, n_repetitions, seed=None)
 
     # Solve problems
     # for label in to_solve.keys():

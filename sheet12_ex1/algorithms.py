@@ -274,6 +274,8 @@ def IHT(A, b, s, x0=None, mu=1, max_iter=100, tol_res=None, adaptive=False):
         Step size applied to A'(Ax - b). Defaults to 1.
     max_iter : int, optional
         Maximum number of iterations before terminating the algorithm. Defaults to 500.
+    adaptive : bool, optional
+        If True, choose the step size adaptively in each step.
 
     Returns
     -------

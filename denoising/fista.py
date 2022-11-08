@@ -174,4 +174,3 @@ def fista_cd(L, x0, d, proxR, gradF, max_iter=500):
         
         yield xk, xk_prev
 
-    

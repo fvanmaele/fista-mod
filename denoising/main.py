@@ -21,8 +21,8 @@ import pyproximal
 from fista import fista, fista_mod, fista_cd
 
 # The restarting algorithms had either the same or consistently worse
-# performance, either because of an implementation error or because they are
-# not directly applicable to 2D problems. As such they were left out.
+# performance, either because of an implementation error or because they
+# were not directly applicable to 2D problems. As such they are left out.
 #from fista_restart import fista_rada, fista_greedy
 
 
@@ -67,7 +67,7 @@ def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
         'solution_norm_diff': sol_diff, 
         'objective_norm_diff': obj_diff, 
         'k': k,
-        'solution': xk, 
+        'solution': xk,
         'psnr': sol_psnr
     }    
     return data
@@ -76,7 +76,6 @@ def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
 # %%
 def main_denoising(imfile, id, methods, sigma, max_iter, tol, rsize=(256, 256), **kwargs):
     # Load images
-    # XXX: do this in a separate setup phase
     image = resize(rgb2gray(io.imread(imfile)), rsize, anti_aliasing=True)
     nx, ny = np.shape(image)
     plt.imsave('image{}.png'.format(id), image, cmap='gray')
@@ -148,14 +147,12 @@ if __name__ == "__main__":
     parser.add_argument("n_images", type=int, help="number of images denoised")
 
     # optional arguments
-    parser.add_argument("--method",         type=str,       default='fista_mod', help='fista algorithm used for numeric tests',
-                        choices=['fista', 'fista_mod', 'fista_cd'])
     parser.add_argument("--tol",            type=float,     default=1e-8,   help="threshold for difference ||x{k} - x{k-1}||")
     parser.add_argument("--sigma",          type=float,     default=0.06,   help="value of the regularization parameter")
     parser.add_argument("--max-iter",       type=int,       default=5000,   help="maximum number of iterations for each method")
     parser.add_argument("--nx",             type=int,       default=256,    help="size to resize input images to")
     parser.add_argument("--ny",             type=int,       default=256,    help="size to resize input images to")
-    parser.add_argument("--seed",           type=int,       default=42,     help="value for np.random.seed()")
+    parser.add_argument("--seed",           type=int,       default=None,   help="value for np.random.seed()")
     
     # options to control noise adedd to images
     parser.add_argument("--noise-mode",     type=str,       default='gaussian', help="type of noise to add to images", 
@@ -166,6 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("--noise-amount",   type=float,     default=0.05,   help="proportion of image pixels to replace with noise on range [0, 1]")
 
     args = parser.parse_args()
+    np.random.seed(args.seed)
 
     # assign variables
     assert args.n_images >= 1

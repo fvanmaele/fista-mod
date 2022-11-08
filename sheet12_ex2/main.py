@@ -44,14 +44,11 @@ def experiment(gen, F=None, R=None, tol=-1):
         if xdiff < tol:
             break
 
-    # XXX: for robust face recognition, indices should be taken from the first m
-    # entries (i.e. w* = [x*', e*']')
     data = {
         'solution_norm_diff': sol_diff, 
         'objective_norm_diff': obj_diff, 
         'k': k,
-        'solution': xk,
-        'solution_argsort': np.flip(np.argsort(xk))
+        'solution': xk
     }
     return data
 
@@ -168,7 +165,7 @@ if __name__ == "__main__":
 
         # Apply FISTA to (robust) face recongition
         data = run_trial(b, args.method, B, L, x0, args.sigma, args.max_iter, args.tol)
-        
+
         # Store JSON data for later processing
         basename = "img{}_{}_sigma{:>1.1e}_tol{:>1.1e}".format(
             sample, args.method, args.sigma, args.tol)
@@ -182,11 +179,14 @@ if __name__ == "__main__":
                    (B @ data['solution']).reshape(130, 130), cmap='gray')
         
         # Write out recognized images (corresponding to indices pof highest magnitude)
+        xp = data['solution'][:len(train_set)]
+        xp_argsort = np.flip(np.argsort(xp))
+
         for i in range(0, 3):
             if args.robust:
-                recognized_i = B[:, data['solution_argsort'][i]].todense()
+                recognized_i = B[:, xp_argsort[i]].todense()
             else:
-                recognized_i = B[:, data['solution_argsort'][i]]
+                recognized_i = B[:, xp_argsort[i]]
 
             plt.imsave(basename + "_recognized{}.jpg".format(i), recognized_i.reshape(130, 130), cmap='gray')
             

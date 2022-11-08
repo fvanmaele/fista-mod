@@ -14,7 +14,7 @@ from skimage.color import rgb2gray
 
 
 # %%
-def face_recognition(train_set, imsize, noise_mean=0, noise_stddev=0.1, seed=None, robust=False):
+def face_recognition(train_set, imsize, robust=False):
     """
     Generate input data for solving the robust face recognition problem using convex optimization
     solvers. The dictionary is built from a collection of training images, all assumed
@@ -40,7 +40,6 @@ def face_recognition(train_set, imsize, noise_mean=0, noise_stddev=0.1, seed=Non
         Lipschitz constant for grad F(w) = B.T @ (Bw - b)
 
     """
-    np.random.seed(seed=seed)
     colsize = len(train_set)
     
     # Load images into dictionary

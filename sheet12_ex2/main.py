@@ -120,7 +120,7 @@ if __name__ == "__main__":
     #parser.add_argument("dsize", type=int, help="Number of images selected for the dictionary")
 
     # optional arguments
-    parser.add_argument("--seed", type=int, default=42, help="value for np.random.seed()")
+    parser.add_argument("--seed", type=int, default=None, help="value for np.random.seed()")
     parser.add_argument("--tol", type=float, default=1e-4, help="threshold for difference ||x{k} - x{k-1}||")
     parser.add_argument("--sigma", type=float, default=1, dest='sigma', help="value of the regularization parameter")
     parser.add_argument("--method", type=str, default='fista_mod', choices=['fista', 'fista_mod', 'fista_cd'], 

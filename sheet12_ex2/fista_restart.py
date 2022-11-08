@@ -54,8 +54,13 @@ def fista_rada(L, x0, p, q, proxR, gradF, eps_m=20, eps=None, reset_t=False, max
 
     Returns
     -------
-    np.array
+    xk : np.array
         Approximate solution to the convex optimization problem min F(x) + R(x).
+    converged : bool
+        True if tol_sol is set and the algorithm converged in k < max_iter steps. False if tol_sol
+        is set and the algorithm terminated after max_iter steps. None if tol_sol is None.
+    k : int
+        The number of iteration steps taken by the algorithm.
 
     """
     assert p > 0 and p <= 1, 'p must belong to (0, 1]'
@@ -117,10 +122,37 @@ def fista_greedy(L, gamma, x0, S, eps, proxR, gradF, max_iter=500, tol_sol=None)
     
     Parameters
     ----------
+    L : float
+        Lipschitz constant for the gradient of F.
+    gamma : float
+        
+    x0 : np.array
+        Starting approximation.
+    S : float
+        Scaling factor for the "safeguard" step.
+    eps : float
+        Fixed value < 1 for parameter eps.
+    proxR : function(gamma, y)
+        A function object computing the proximal operator for the proper convex lsc function R, or 
+        an approximation thereof. The function is assumed to take two parameters: the step size 
+        gamma, and an input value y.
+    gradF : function(y)
+        A function object computing the gradient of F, or an approximation thereof. It is assumed
+        to be Lipschitz continuous, and takes an input value y.
+    max_iter : int, optional
+        Maximum number of iterations before the algorithm terminates. Defaults to 500.
+    tol_sol : float, optional
+        Terminate when ||x{k+1} - x{k}||_2 is less than the given tolerance. Defaults to None.
 
     Returns
     -------
-    None.
+    xk : np.array
+        Approximate solution to the convex optimization problem min F(x) + R(x).
+    converged : bool
+        True if tol_sol is set and the algorithm converged in k < max_iter steps. False if tol_sol
+        is set and the algorithm terminated after max_iter steps. None if tol_sol is None.
+    k : int
+        The number of iteration steps taken by the algorithm.
 
     """
     assert gamma >= 1./L and gamma < 2./L
@@ -141,13 +173,16 @@ def fista_greedy(L, gamma, x0, S, eps, proxR, gradF, max_iter=500, tol_sol=None)
         print("GreedyFISTA: {} (iter {})".format(xk_diff, k))
         if tol_sol is not None and xk_diff < tol_sol:
             break
+        
         # Copy of first iterate for safeguard
         if k == 1:
             x1 = np.copy(xk)
+        
         # Restarting
         if np.dot(yk - xk, xk - xk_prev) >= 0:
             n_restarts += 1
             yk = xk_prev        
+        
         # Safeguard
         if k >= 1 and np.linalg.norm(xk - xk_prev) > S * np.linalg.norm(x1 - x0):
             gamma = np.max([eps*gamma, 1./L])

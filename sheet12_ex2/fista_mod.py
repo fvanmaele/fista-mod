@@ -47,8 +47,13 @@ def fista_mod(L, x0, p, q, r, proxR, gradF, max_iter=500, tol_sol=None,
 
     Returns
     -------
-    np.array
+    xk : np.array
         Approximate solution to the convex optimization problem min F(x) + R(x).
+    converged : bool
+        True if tol_sol is set and the algorithm converged in k < max_iter steps. False if tol_sol
+        is set and the algorithm terminated after max_iter steps. None if tol_sol is None.
+    k : int
+        The number of iteration steps taken by the algorithm.
 
     """
     assert p > 0 and p <= 1, 'p must belong to (0, 1]'
@@ -125,8 +130,13 @@ def fista_cd(L, x0, d, proxR, gradF, max_iter=500, tol_sol=None,
 
     Returns
     -------
-    np.array
+    xk : np.array
         Approximate solution to the convex optimization problem min F(x) + R(x).
+    converged : bool
+        True if tol_sol is set and the algorithm converged in k < max_iter steps. False if tol_sol
+        is set and the algorithm terminated after max_iter steps. None if tol_sol is None.
+    k : int
+        The number of iteration steps taken by the algorithm.
 
     """
     xk_prev = np.copy(x0) # x_{-1}

@@ -95,7 +95,11 @@ def OMP(A, b, max_iter=100, tol_res=None):
 
         # orthogonal projection
         x = np.zeros(n, dtype=A.dtype)
-        x[S] = np.linalg.pinv(A[:, S]) @ b
+        try:
+            x[S] = np.linalg.pinv(A[:, S]) @ b
+        except np.linalg.LinAlgError:
+            k = max_iter+1
+            break
         
         # update residual
         r = b - A@x
@@ -202,7 +206,8 @@ def hard_threshold(x, s):
     assert s <= x.size, "s must not exceed the length of x"
 
     Tx  = np.zeros(x.size, dtype=x.dtype)
-    idx = np.flip(np.argsort(np.abs(x), kind='stable'))[:s]   
+    idx = np.flip(np.argsort(np.abs(x), kind='stable'))[:s]
+    #idx = [i for i in idx if x[i] > precision]
     Tx[idx] = x[idx]    
 
     return Tx
@@ -220,7 +225,7 @@ def BT(A, b, s):
     An s-sparse vector with S := supp(x) is recovered from b = Ax via basic thresholding, if and
     only if
         min(j \in S) |(A' b)_j| > max(l \in Sc) |(A' b)_l|
-
+obj->{'results'}
     Parameters
     ----------
     A : np.array
@@ -245,7 +250,10 @@ def BT(A, b, s):
 
     # orthogonal projection on S
     x = np.zeros(n, dtype=A.dtype)
-    x[S] = np.linalg.pinv(A[:, S]) @ b
+    try:
+        x[S] = np.linalg.pinv(A[:, S]) @ b
+    except np.linalg.LinAlgError:
+        pass
 
     return x
 
@@ -375,7 +383,11 @@ def HTP(A, b, s, x0=None, max_iter=100, tol_res=None):
 
         # orthogonal projection
         x = np.zeros(n, dtype=A.dtype)
-        x[S] = np.linalg.pinv(A[:, S]) @ b
+        try:
+            x[S] = np.linalg.pinv(A[:, S]) @ b
+        except np.linalg.LinAlgError:
+            k = max_iter+1
+            break
 
         # compute residual for next step
         r = b - A@x
@@ -447,11 +459,15 @@ def CoSaMP(A, b, s, x0=None, max_iter=100, tol_res=None):
 
     for k in range(1, max_iter+1):
         # preliminary support set
-        S = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, 2*s))[0]))
+        S = np.union1d(np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, 2*s))[0])
 
         # orthogonal projection
         u = np.zeros(n, dtype=A.dtype)
-        u[S] = np.linalg.pinv(A[:, S]) @ b
+        try:
+            u[S] = np.linalg.pinv(A[:, S]) @ b
+        except np.linalg.LinAlgError:
+            k = max_iter+1
+            break
         
         # thresholding
         x = hard_threshold(u, s)
@@ -521,21 +537,18 @@ def SP(A, b, s, x0=None, max_iter=100, tol_res=None):
 
     for k in range(1, max_iter+1):
         # preliminary support set
-        U = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, s))[0]))
+        U = np.union1d(np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, s))[0])
 
         # orthogonal projection
-        # XXX: only place where with TOL = 1e-8 and the generated problems an SVD error occured
-        # in this case, we abort the iteration and return the previous iterate x_k
         try:
             u = np.zeros(n, dtype=A.dtype)
             u[U] = np.linalg.pinv(A[:, U]) @ b
         except np.linalg.LinAlgError:
-            k = max_iter+1  # TODO: add a special error state to "converged"
+            k = max_iter+1
             break
         
         # thresholding and second projection step
         S = np.nonzero(hard_threshold(u, s))[0]
-
         try:
             x = np.zeros(n, dtype=A.dtype)
             x[S] = np.linalg.pinv(A[:, S]) @ b

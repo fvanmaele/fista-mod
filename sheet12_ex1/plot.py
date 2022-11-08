@@ -12,11 +12,16 @@ from glob import glob
 from cycler import cycler
 
 # %%
-def show_plots(files, label):
+def show_plots(files, label, ylim=None, xlim=None, ylog=False):
     plt.clf()
-    plt.yscale('log')
+    if ylog is True:
+        plt.yscale('log')
     plt.rc('lines', linewidth=1.5)
-    
+    if ylim is not None:
+        plt.ylim(ylim[0], ylim[1])
+    if xlim is not None:
+        plt.xlim(xlim[0], xlim[1])
+
     default_cycler = (cycler(color=['r', 'g', 'b', 'y']) *
                       cycler(linestyle=['-', '--']))
     plt.rc('axes', prop_cycle=default_cycler)
@@ -30,6 +35,7 @@ def show_plots(files, label):
         data = {}
         with open(filename, 'r') as f:
             data = json.load(f)    
+
         plt.plot(range(1, len(data[label])+1), data[label], label=algo)
         plt.legend()
     
@@ -43,13 +49,13 @@ F_json = glob("F_*.json")  # Partial Fourier matrix
 F_json.sort()
 
 # %%
-show_plots(A_json, 'error')
+show_plots(A_json, 'error', ylim=(0, 1))
 
 # %%
-show_plots(F_json, 'error')
+show_plots(F_json, 'error', ylim=(0, 1))
 
 # %%
-show_plots(A_json, 'cputime')
+show_plots(A_json, 'cputime', ylog=True)
 
 # %%
-show_plots(F_json, 'cputime')
+show_plots(F_json, 'cputime', ylog=True)

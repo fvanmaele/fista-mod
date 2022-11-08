@@ -69,7 +69,7 @@ def sensor_random(m, n, mean=0, std=1, seed=None, normalize=True):
     return A
 
 
-def sensor_random_partial_fourier(m, n, seed=None, normalize=True):
+def sensor_partial_fourier(m, n, seed=None, normalize=True):
     """
     Generate a discrete Fourier transform matrix of dimension (n, n), with m rows chosen
     uniformly at random.

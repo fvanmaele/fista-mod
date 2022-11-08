@@ -8,7 +8,7 @@ Comparison of performance of different greedymethods with l1-minimization (Sheet
 
 import numpy as np
 import algorithms
-from sensors import sensor_random, sensor_random_partial_fourier
+from sensors import sensor_random, sensor_partial_fourier
 
 import json
 import sys
@@ -52,7 +52,7 @@ def problem_range(problem):
         for p in problems:
             to_solve[p] = True
 
-    return to_solve
+    return to_solve, problems
 
 
 def recovery_error(x, xh, ord=None):
@@ -143,6 +143,14 @@ def run_trials(trials, algorithm, label):
 
 
 # %%
+m = 2**6
+n = 2**7
+A = sensor_random(m, n)
+F = sensor_partial_fourier(m, n)
+Ac = coherence(A)
+Fc = coherence(F)
+
+# %%
 if __name__ == "__main__":
     # retrieve arguments from the command-line
     import argparse
@@ -172,19 +180,19 @@ if __name__ == "__main__":
     if mtx_type == 'A':
         A = sensor_random(m, n)
     elif mtx_type == 'F':
-        A = sensor_random_partial_fourier(m, n)
+        A = sensor_partial_fourier(m, n)
     else:
         print("error: invalid matrix type", file=sys.stderr)
         sys.exit(1)
 
     s_max = m if args.s_max is None else args.s_max
     s_min = 1 if args.s_min is None else args.s_min
-    to_solve = problem_range(args.problem)
+    to_solve, _ = problem_range(args.problem)
 
     # Recover xh from measurements b = Ax, for every problem instance of sparsity 1 <= s <= m
     trials = generate_problems(n, s_min, s_max, n_trials, seed=None)
 
-    # %%
+    # %% 01
     if 'basis_pursuit' in to_solve:
         algorithm = lambda A, b, _: algorithms.basis_pursuit(A, b)
         avg_bp, avg_bp_ts = run_trials(trials, algorithm, 'BP')
@@ -192,7 +200,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_BP.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_bp, 'cputime': avg_bp_ts}, outfile)
      
-    # %%
+    # %% 02
     if 'omp' in to_solve:
         algorithm = lambda A, b, _: algorithms.OMP(A, b, tol_res=tol)[0]
         avg_omp, avg_omp_ts = run_trials(trials, algorithm, 'OMP')
@@ -200,7 +208,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_OMP.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_omp, 'cputime': avg_omp_ts}, outfile)
     
-    # %%
+    # %% 03
     if 'mp' in to_solve:
         algorithm = lambda A, b, _: algorithms.MP(A, b, tol_res=tol)[0]
         avg_mp, avg_mp_ts = run_trials(trials, algorithm, 'MP')
@@ -208,7 +216,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_MP.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_mp, 'cputime': avg_mp_ts}, outfile)
     
-    # %%
+    # %% 04
     if 'iht' in to_solve:
         algorithm = lambda A, b, s: algorithms.IHT(A, b, s, tol_res=tol, adaptive=True)[0]
         avg_iht, avg_iht_ts = run_trials(trials, algorithm, 'IHT')
@@ -216,7 +224,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_IHT.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_iht, 'cputime': avg_iht_ts}, outfile)
     
-    # %%
+    # %% 05
     if 'cosamp' in to_solve:
         algorithm = lambda A, b, s: algorithms.CoSaMP(A, b, s, tol_res=tol)[0]
         avg_cosamp, avg_cosamp_ts = run_trials(trials, algorithm, 'CoSaMP')
@@ -224,7 +232,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_CoSaMP.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_cosamp, 'cputime': avg_cosamp_ts}, outfile)
     
-    # %%
+    # %% 06
     if 'bt' in to_solve:
         algorithm = lambda A, b, s: algorithms.BT(A, b, s)
         avg_bt, avg_bt_ts = run_trials(trials, algorithm, 'BT')
@@ -232,7 +240,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_BT.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_bt, 'cputime': avg_bt_ts}, outfile)
     
-    # %%
+    # %% 07
     if 'htp' in to_solve:
         algorithm = lambda A, b, s: algorithms.HTP(A, b, s, tol_res=tol)[0]
         avg_htp, avg_htp_ts = run_trials(trials, algorithm, 'HTP')
@@ -240,7 +248,7 @@ if __name__ == "__main__":
         with open('{}_m{}_n{}_{}_trials_fre_HTP.json'.format(mtx_type, m, n, n_trials), 'w') as outfile:
             json.dump({'error': avg_htp, 'cputime': avg_htp_ts}, outfile)
     
-    # %%
+    # %% 08
     if 'sp' in to_solve:
         algorithm = lambda A, b, s: algorithms.SP(A, b, s, tol_res=tol)[0]
         avg_sp, avg_sp_ts = run_trials(trials, algorithm, 'SP')

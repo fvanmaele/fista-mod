@@ -11,73 +11,146 @@ from glob import glob
 from skimage import io
 from skimage.color import rgb2gray
 import scipy.sparse as sparse
-from scipy.io import mmread, mmwrite
 
 from fista import fista
 from fista_mod import fista_mod, fista_cd
 from fista_restart import fista_rada, fista_greedy
 
-# %%
+# %% Class to write out a numpy array to JSON
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
-def image_dictionary(files, rowsize, samples):
+
+# %%
+def setup(files, imsize, dictsize, n_trials, seed=None):
+    """
+    Generate input data for solving the robust face recognition problem using convex optimization
+    solvers. The dictionary is built from randomly sampling a collection of images, all assumed
+    to be of the same size. Images are then converted to grayscale and stacked as column vectors.
+    
+    The returned matrix is a sparse concatenation of a dense matrix A of dimension (m, n) and the 
+    identity matrix (m, m), where n << m.
+
+    Parameters
+    ----------
+    files : list
+        List of paths pointing to image files. All images are assumed to have the same size.
+    imsize : int
+        Fixed image size m*n of image files.
+    dictsize : int
+        The number of random images sampled.
+    n_trials : int
+        The number of images to be reconstructed. Candidates are taken from the complement of
+        images in the dictionary.
+    seed : int, optional
+        Value for np.random.seed. Defaults to None.
+
+    Returns
+    -------
+    B : np.array
+        Sparse matrix for robust face recognition.
+    L : float
+        Lipschitz constant for grad F(w) = B.T @ (Bw - b)
+    candidates : list
+        Indices of images to be reconstructed.
+
+    """
+    np.random.seed(seed=seed)
+
+    # Select dsize<i> random images for the dictionary
+    samples = np.random.permutation(len(files))[:dictsize]
     colsize = len(samples)
-    A = np.zeros((rowsize, colsize))
+    
+    # Load images into dictionary
+    A = np.zeros((imsize, colsize))
 
     for i in range(0, colsize):
         img = io.imread(files[int(samples[i])])
         img = rgb2gray(img)
+        
         A[:, i] = np.copy(img.flatten())
 
-    return A
+    B = sparse.hstack([sparse.csc_matrix(A), sparse.eye(imsize)], format='csc')
 
-
-# %%
-def setup(files, imsize, dictsize, n_starts, seed):
-    np.random.seed(seed=seed)
-
-    # Select dsize<i> random images for the dictionary
-    smp = np.random.permutation(len(files))[:dictsize]
-
-    # Load images into dictionary
-    filename = 'B_dsize{}_seed{}_imsize{}_files{}.mtx'.format(dictsize, seed, imsize, len(files))
-    try:
-        B = mmread(filename)
-    except:
-        B = sparse.hstack([sparse.csc_matrix(image_dictionary(files, imsize, smp)), 
-                           sparse.eye(imsize)], format='csc')
-        mmwrite(filename, B)
-
+    # Compute Lipschitz constant of l2 gradient
     BtB = B.T @ B
     L = sparse.linalg.norm(BtB)
     
-    # Choose 20 different input images 'b' that are not in the dictionary
-    candidates = np.setdiff1d(range(0, len(files)), smp)
-    candidates = candidates[np.random.permutation(len(candidates))[:20]]
+    # Choose N different input images 'b' that are not in the dictionary
+    candidates = np.setdiff1d(range(0, len(files)), samples)
+    candidates = candidates[np.random.permutation(len(candidates))[:n_trials]]
     
-    # Random starting points x0
-    starting_points = np.random.randn(B.shape[1], n_starts)
-    
-    return B, L, starting_points, candidates
+    return B, L, candidates
 
 
-def soft_thresholding(gamma, w, Lambada=1):
-    return np.multiply(np.sign(w), np.maximum(0, np.subtract(np.abs(w), Lambada*gamma)))
+def soft_thresholding(gamma, w, lmb=1):
+    """
+    Proximal operator for the scaled l1 norm lambda*||w||_1.
+
+    Parameters
+    ----------
+    gamma : float
+        Scaling factor for the proximal operator.
+    w : np.array
+        Input vector.
+    lmb : float, optional
+        Scaling factor the l1 norm. The default is 1.
+
+    Returns
+    -------
+    np.array
+
+    """
+    return np.multiply(np.sign(w), np.maximum(0, np.subtract(np.abs(w), lmb*gamma)))
 
 
-def run_trials(method, B, L, starting_points, candidates, Lambada, dsize, max_iter, tol):
+def run_trials(files, method, B, L, starting_points, candidates, lmb, dsize, max_iter, tol):
+    """
+    Solve the robust face recognition problem with various FISTA modifications. Due to the long
+    running times for higher dimensions, intermediary results are stored to JSON files for later
+    processing.
+
+    Parameters
+    ----------
+    files : list
+        List of file paths to input images. Includes both images for the dictionary and images
+        to be recovered by FISTA.
+    method : str
+        Type of algorithm used. Can be one of 'fista', 'fista_mod', 'fista_rada', 'fista_greedy',
+        or 'fista_cd'.
+    B : np.array
+        Matrix B = [A I] for the robust face recognition problem.
+    L : float
+        Lipschitz constant for the gradient B.T @ (Bw - b).
+    starting_points : np.array
+        List of starting approximations x0.
+    candidates : list
+        List of image indices to be recovered.
+    lmb : float
+        Regularization parameter.
+    dsize : int
+        Dictionary size.
+    max_iter : int
+        Maximum number of iterations.
+    tol : float
+        Tolerance on the difference norm ||x{k} - x{k-1}|| for iterates.
+
+    Returns
+    -------
+    None.
+
+    """
     for b_idx in candidates:
         b = io.imread(files[b_idx])
         b = rgb2gray(b).flatten()
 
         F = lambda w : 1/2 * np.dot(B@w - b, B@w - b)
-        R = lambda w : Lambada * np.linalg.norm(w, ord=1)
+        R = lambda w : lmb * np.linalg.norm(w, ord=1)
         gradF = lambda w : B.T @ (B@w - b)
-        proxR = lambda gamma, w : soft_thresholding(gamma, w, Lambada=Lambada)
+        proxR = lambda gamma, w : soft_thresholding(gamma, w, lmb=lmb)
 
         for x0_idx in range(0, starting_points.shape[1]):
             x0 = starting_points[:, x0_idx]
@@ -100,12 +173,9 @@ def run_trials(method, B, L, starting_points, candidates, Lambada, dsize, max_it
                 xk, converged, k = fista_cd(L, x0, 20, proxR, gradF, max_iter=max_iter, tol_sol=tol,
                                             F=F, R=F, out_conv_sol=out_conv_sol, out_conv_obj=out_conv_obj)
 
-            with open("{}_dsize{}_lambda{:>1.1e}_tol{:>1.1e}_img{}_start{}.json".format(method, dsize, Lambada, tol, b_idx, x0_idx), 'w') as f:
+            with open("{}_dsize{}_lambda{:>1.1e}_tol{:>1.1e}_img{}_start{}.json".format(method, dsize, lmb, tol, b_idx, x0_idx), 'w') as f:
                 json.dump({'solution_norm_diff': out_conv_sol, 'objective_norm_diff': out_conv_obj, 'k': k, 'converged': converged, 'solution': xk}, f, cls=NumpyEncoder)
     
-    #return xk  # TODO: array of solutions
-
-
 
 # %% LFW images with deep funneling
 files = glob("data/*")
@@ -136,15 +206,15 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="value for np.random.seed()")
     parser.add_argument("--tol", type=float, default=1e-4, help="threshold for difference ||x{k} - x{k-1}||")
     parser.add_argument("--parameter", type=float, default=1e-6, help="value of the regularization parameter")
-    parser.add_argument("--n-trials", type=int, default=4, help="number of images checked with dictionary")
-    parser.add_argument("--n-starts", type=int, default=2, help="number of random starting points (standard normal distribution)")
+    parser.add_argument("--n-trials", type=int, default=5, help="number of images checked with dictionary")
     parser.add_argument("--method", type=str, default='fista_mod', choices=['fista', 'fista_mod', 'fista_rada', 'fista_greedy', 'fista_cd'], 
                         help='fista algorithm used for numeric tests')
     parser.add_argument("--max-iter", type=str, default=100000, help='maximum number of iterations')
     args = parser.parse_args()
 
-    starting_points = np.zeros((imsize+args.dsize, 1)) # FIXME
-    B, L, _, candidates = setup(files, imsize, args.dsize, args.n_starts, args.seed)
-    
+    # generate input data
+    starting_points = np.zeros((imsize+args.dsize, 1)) # XXX: this seemed to have worked better than a random vector
+    B, L, candidates = setup(files, imsize, args.dsize, args.n_trials, args.seed)
 
-    run_trials(args.method, B, L, starting_points, candidates, args.parameter, args.dsize, args.max_iter, args.tol)
+    # run trials for different images
+    run_trials(files, args.method, B, L, starting_points, candidates, args.parameter, args.dsize, args.max_iter, args.tol)

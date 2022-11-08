@@ -161,7 +161,7 @@ Methods using orthogonal projection had their CPU time increase exponentially.
 
 \begin{figure}[h]
 \begin{centering}
-\includegraphics[width=0.9\columnwidth]{A_m64_n128_100_error}
+\includegraphics[width=0.9\columnwidth]{images/A_m64_n128_100_error}
 \par\end{centering}
 \caption{Relative recovery error ($y$-axis) over 100 trials per sparsity $1\protect\leq s\protect\leq m$
 ($x$-axis) for \textbf{Gaussian} \textbf{matrix} $A\in\mathbb{R}^{64\times128}$
@@ -170,7 +170,7 @@ with normalized columns.\label{fig:Relative-recovery-error-Gaussian}}
 
 \begin{figure}[h]
 \begin{centering}
-\includegraphics[width=0.8\columnwidth]{F_m64_n128_100_error}
+\includegraphics[width=0.8\columnwidth]{images/F_m64_n128_100_error}
 \par\end{centering}
 \caption{Relative recovery error ($y$-axis) averaged over 100 trials, by sparsity
 level $1\protect\leq s\protect\leq m$ ($x$-axis) for \textbf{partial
@@ -180,7 +180,7 @@ columns.\label{fig:Relative-recovery-error-Fourier}}
 
 \begin{figure}[h]
 \begin{centering}
-\includegraphics[width=0.8\columnwidth]{A_m64_n128_100_cputime}
+\includegraphics[width=0.8\columnwidth]{images/A_m64_n128_100_cputime}
 \par\end{centering}
 \caption{Combined CPU time in seconds per iteration ($y$-axis) averaged over
 100 trials, by sparsity level $1\protect\leq s\protect\leq m$ for
@@ -191,7 +191,7 @@ columns.\label{fig:Combined-CPU-time-Gaussian}}
 
 \begin{figure}[h]
 \begin{centering}
-\includegraphics[width=0.8\columnwidth]{F_m64_n128_100_cputime}
+\includegraphics[width=0.8\columnwidth]{images/F_m64_n128_100_cputime}
 \par\end{centering}
 \caption{Combined CPU time in seconds per iteration ($y$-axis) averaged over
 100 trials, by sparsity level $1\protect\leq s\protect\leq m$ for
@@ -266,7 +266,7 @@ above. The non-zero entries of the solution $x_{\ast}$ represent
 the person the image belongs to. In pratice this can only hold approximately,
 and we look instead at the vector 
 \[
-|x|_{\downarrow}=(|x|_{[1]},|x|_{[2]},\dots),\quad|x|_{[1]}\geq|x|_{[2]}\geq\cdots
+x_{\downarrow}=(x{}_{[1]},x{}_{[2]},\dots),\quad x{}_{[1]}\geq x{}_{[2]}\geq\cdots
 \]
  of sorted by absolute magnitude of its elements.
 \end{rem*}
@@ -319,30 +319,30 @@ and \ref{fig:convergence-uncropped}.
 \begin{minipage}[b][1\totalheight][t]{0.2\columnwidth}%
 \begin{center}
 \subfloat[Original]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222229\string".png}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-07 222229\string".png}
 \par\end{centering}
 }
 \par\end{center}%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
 \subfloat[$Bx^{\ast}$]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222319\string".png}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-07 222319\string".png}
 \par\end{centering}
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
-\subfloat[{$B_{|x^{\ast}|_{[1]}}$}]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222323\string".png}
+\subfloat[{$B_{x^{\ast}{}_{[1]}}$}]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-07 222323\string".png}
 \par\end{centering}
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
-\subfloat[{$B_{|x^{\ast}|_{[2]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222328\string".png}
+\subfloat[{$B_{x^{\ast}{}_{[2]}}$}]{\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-07 222328\string".png}
 
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
-\subfloat[{$B_{|x^{\ast}|_{[3]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-07 222331\string".png}
+\subfloat[{$B_{x^{\ast}{}_{[3]}}$}]{\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-07 222331\string".png}
 
 }%
 \end{minipage}
@@ -355,7 +355,7 @@ and \ref{fig:convergence-uncropped}.
 \hfill{}%
 \begin{minipage}[t]{0.5\columnwidth}%
 \subfloat[Values of $x^{\ast}$]{\begin{centering}
-\includegraphics[width=1\columnwidth]{/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/fista_mod_uncropped}
+\includegraphics[width=1\columnwidth]{images/fista_mod_uncropped}
 \par\end{centering}
 
 }%
@@ -363,7 +363,7 @@ and \ref{fig:convergence-uncropped}.
 \begin{minipage}[t]{0.5\columnwidth}%
 \subfloat[Differences $J(x^{(k)})-J(x^{(k-1)})$ and $\|x^{(k)}-x^{(k-1)}\|$
 by number of iterations]{\begin{centering}
-\includegraphics[width=1\columnwidth]{/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/fista_mod_uncropped_norm_diff}
+\includegraphics[width=1\columnwidth]{images/fista_mod_uncropped_norm_diff}
 \par\end{centering}
 
 }%
@@ -391,30 +391,30 @@ iterations. See Figure \ref{fig:cropped-results} and \ref{fig:convergence-croppe
 \begin{minipage}[b][1\totalheight][t]{0.2\columnwidth}%
 \begin{center}
 \subfloat[Original]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015303\string".png}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 015303\string".png}
 \par\end{centering}
 }
 \par\end{center}%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
 \subfloat[$Bx^{\ast}$]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015802\string".png}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 015802\string".png}
 \par\end{centering}
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
-\subfloat[{$B_{|x^{\ast}|_{[1]}}$}]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015511\string".png}
+\subfloat[{$B_{x^{\ast}{}_{[1]}}$}]{\begin{centering}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 015511\string".png}
 \par\end{centering}
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
-\subfloat[{$B_{|x^{\ast}|_{[2]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015514\string".png}
+\subfloat[{$B_{x^{\ast}{}_{[2]}}$}]{\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 015514\string".png}
 
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.2\columnwidth}%
-\subfloat[{$B_{|x^{\ast}|_{[3]}}$}]{\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015518\string".png}
+\subfloat[{$B_{x^{\ast}{}_{[3]}}$}]{\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 015518\string".png}
 
 }%
 \end{minipage}
@@ -426,14 +426,14 @@ iterations. See Figure \ref{fig:cropped-results} and \ref{fig:convergence-croppe
 \hfill{}%
 \begin{minipage}[t]{0.5\columnwidth}%
 \subfloat[Values of $x^{\ast}$]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 015440\string".png}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 015440\string".png}
 \par\end{centering}
 }%
 \end{minipage}\hfill{}%
 \begin{minipage}[t]{0.5\columnwidth}%
 \subfloat[Differences $J(x^{(k)})-J(x^{(k-1)})$ and $\|x^{(k)}-x^{(k-1)}\|$
 by number of iterations]{\begin{centering}
-\includegraphics[width=1\columnwidth]{\string"/home/fvanmaele/source/repos/fista-mod/sheet12_ex2/Figure 2022-11-08 020308\string".png}
+\includegraphics[width=1\columnwidth]{\string"images/Figure 2022-11-08 020308\string".png}
 \par\end{centering}
 }%
 \end{minipage}

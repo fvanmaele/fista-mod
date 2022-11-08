@@ -38,7 +38,7 @@ def PSNR(orig, noisy):
     return psnr
 
 
-def experiment(basename, orig, noisy, gen, F=None, R=None, tol_sol=-1):
+def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
     assert np.size(orig) == np.size(noisy)
 
     sol_diff = []
@@ -94,7 +94,7 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     print("Image {}, FISTA, sigma {}, TOL {}".format(id, sigma, tol))
     basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista', sigma, tol)
     generator = fista(L, x0, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)
+    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)
     
     with open(basename + '.json', 'w') as f:
         json.dump(exp_data, f, cls=NumpyEncoder)
@@ -107,7 +107,7 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     print("Image {}, FISTA-Mod, sigma {}, TOL {}".format(id, sigma, tol))
     basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_mod', sigma, tol)
     generator = fista_mod(L, x0, 1/20, 1/2, 4, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(basename, orig, b, generator, F=F, R=R, tol_sol=tol)
+    exp_data  = experiment(orig, b, generator, F=F, R=R, tol_sol=tol)
     
     with open(basename + '.json', 'w') as f:
         json.dump(exp_data, f, cls=NumpyEncoder)
@@ -120,7 +120,7 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     print("Image {}, Rada-FISTA, sigma {}, TOL {}".format(id, sigma, tol))
     basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_rada', sigma, tol)
     generator = fista_rada(L, x0, 1/20, 1/2, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)
+    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)
     
     with open(basename + '.json', 'w') as f:
         json.dump(exp_data, f, cls=NumpyEncoder)
@@ -133,7 +133,7 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     print("Image {}, Greedy FISTA, sigma {}, TOL {}".format(id, sigma, tol))
     basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_greedy', sigma, tol)
     generator = fista_greedy(L, 1.3/L, x0, 1, 0.96, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)    
+    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)    
     
     with open(basename + '.json', 'w') as f:
         json.dump(exp_data, f, cls=NumpyEncoder)
@@ -146,7 +146,7 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     print("Image {}, FISTA-CD, sigma {}, TOL {}".format(id, sigma, tol))
     basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_cd', sigma, tol)
     generator = fista_cd(L, x0, 20, proxR, gradF, max_iter=max_iter)
-    exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)
+    exp_data  = experiment(orig, b ,generator, F=F, R=R, tol_sol=tol)
     
     with open(basename + '.json', 'w') as f:
         json.dump(exp_data, f, cls=NumpyEncoder)

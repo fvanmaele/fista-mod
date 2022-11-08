@@ -76,7 +76,7 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
 
     noisy = random_noise(image, **kwargs)
     nsize = noisy.size
-    plt.imsave('image{}_random_noise.png'.format(id), noisy, cmap='gray')
+    plt.imsave('image{}_{}.png'.format(id, kwargs['mode']), noisy, cmap='gray')
 
     # Formulate problem
     orig  = image.flatten()
@@ -89,9 +89,10 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     proxR = lambda gamma, w : R.prox(w, gamma)
     x0    = np.zeros(nsize)
     
+    
     # FISTA
     print("Image {}, FISTA, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_sigma{}_tol{:>1.1e}".format(id, 'fista', sigma, tol)
+    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista', sigma, tol)
     generator = fista(L, x0, proxR, gradF, max_iter=max_iter)
     exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)
     
@@ -101,9 +102,10 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
     print("done {} iterations".format(exp_data['k']))
     
+    
     # Modified FISTA
     print("Image {}, FISTA-Mod, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_sigma{}_tol{:>1.1e}".format(id, 'fista_mod', sigma, tol)
+    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_mod', sigma, tol)
     generator = fista_mod(L, x0, 1/20, 1/2, 4, proxR, gradF, max_iter=max_iter)
     exp_data  = experiment(basename, orig, b, generator, F=F, R=R, tol_sol=tol)
     
@@ -113,9 +115,10 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')        
     print("done {} iterations".format(exp_data['k']))
     
+    
     # Restarting FISTA
     print("Image {}, Rada-FISTA, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_sigma{}_tol{:>1.1e}".format(id, 'fista_rada', sigma, tol)
+    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_rada', sigma, tol)
     generator = fista_rada(L, x0, 1/20, 1/2, proxR, gradF, max_iter=max_iter)
     exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)
     
@@ -125,9 +128,10 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
     print("done {} iterations".format(exp_data['k']))
     
+    
     # Greedy FISTA
     print("Image {}, Greedy FISTA, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_sigma{}_tol{:>1.1e}".format(id, 'fista_greedy', sigma, tol)
+    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_greedy', sigma, tol)
     generator = fista_greedy(L, 1.3/L, x0, 1, 0.96, proxR, gradF, max_iter=max_iter)
     exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)    
     
@@ -137,9 +141,10 @@ def main_denoising(imfile, id, sigma, max_iter, tol, rsize=(256, 256), **kwargs)
     plt.imsave(basename + '.png', exp_data['solution'].reshape(nx, ny), cmap='gray')
     print("done {} iterations".format(exp_data['k']))
     
+    
     # FISTA (Chambolle & Dossal)
     print("Image {}, FISTA-CD, sigma {}, TOL {}".format(id, sigma, tol))
-    basename  = "image{}_{}_sigma{}_tol{:>1.1e}".format(id, 'fista_cd', sigma, tol)
+    basename  = "image{}_{}_{}_sigma{}_tol{:>1.1e}".format(id, kwargs['mode'], 'fista_cd', sigma, tol)
     generator = fista_cd(L, x0, 20, proxR, gradF, max_iter=max_iter)
     exp_data  = experiment(basename, orig, b ,generator, F=F, R=R, tol_sol=tol)
     
@@ -170,7 +175,7 @@ if __name__ == "__main__":
     
     # options to control noise adedd to images
     parser.add_argument("--noise-mode",     type=str,       default='gaussian', help="type of noise to add to images", 
-                        choices=['gaussian', 'poisson', 'salt', 'pepper', 's&p', 'speckle'])
+                        choices=['gaussian', 'poisson', 's&p', 'speckle'])
     parser.add_argument("--noise-var",      type=float,     default=0.01,   help="variance of added Gaussian noise")
     parser.add_argument("--noise-mean",     type=float,     default=0,      help="mean of added Gaussian noise")
     parser.add_argument("--noise-svp",      type=float,     default=0.5,    help="proportion of salt vs. pepper noise")

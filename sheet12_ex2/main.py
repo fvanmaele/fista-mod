@@ -192,7 +192,7 @@ def run_trials(files, method, B, L, starting_points, candidates, lmb, dsize, max
                                                 F=F, R=R, out_conv_sol=out_conv_sol, out_conv_obj=out_conv_obj)
             elif method == 'fista_cd':
                 xk, converged, k = fista_cd(L, x0, 20, proxR, gradF, max_iter=max_iter, tol_sol=tol,
-                                            F=F, R=F, out_conv_sol=out_conv_sol, out_conv_obj=out_conv_obj)
+                                            F=F, R=R, out_conv_sol=out_conv_sol, out_conv_obj=out_conv_obj)
 
             with open("{}_dsize{}_lambda{:>1.1e}_tol{:>1.1e}_img{}_start{}.json".format(method, dsize, lmb, tol, b_idx, x0_idx), 'w') as f:
                 json.dump({'solution_norm_diff': out_conv_sol, 'objective_norm_diff': out_conv_obj, 'k': k, 'converged': converged, 'solution': xk}, f, cls=NumpyEncoder)

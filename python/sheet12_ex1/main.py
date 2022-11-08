@@ -15,7 +15,7 @@ import sys
 from time import process_time
 
 
-# %% Generate matrices with normalized columns
+# %%
 import argparse
 parser = argparse.ArgumentParser(description='Retrieve arguments')
 
@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description='Retrieve arguments')
 parser.add_argument("MType", type=str, help="Normalized column matrix, Gaussian [A] or partial Fourier [F]")
 
 # optional arguments
+# XXX: could also add the maximum number of iterations per algorithm
 parser.add_argument("--seed", type=int, default=100, help="value for np.random.seed()")
 parser.add_argument("--n", type=int, default=2**7, help="problem dimension (columns)")
 parser.add_argument("--m", type=int, default=2**6, help="problem dimension (rows)")
@@ -30,7 +31,34 @@ parser.add_argument("--tol", type=float, default=1e-6, help="value for residual-
 parser.add_argument("--n-trials", type=int, default=100, help="repetitions for each sparsity value")
 parser.add_argument("--s-max", type=int, default=None, help="maximum sparsity level (defaults to m)")
 parser.add_argument("--s-min", type=int, default=None, help="minimum sparsity level (defaults to 1)")
+parser.add_argument("--include", type=str, default='all', help="list of algorithms to test (starts from 1, comma separation)")
 args = parser.parse_args()
+
+
+# %% Helper function to convert a string such as "1,3-5" to a set of problems we want to solve
+def problem_range(include):
+    problems = ['BP', 'OMP', 'MP', 'IHT', 'CoSaMP', 'BT', 'HTP', 'SP']
+    to_solve = {}
+    
+    if include != 'all':
+        ranges = include.split(',')
+        for prange in ranges:
+            p = prange.split('-')            
+            if len(p) == 1:
+                idx = int(p[0])-1 # 1-indexing
+                to_solve[problems[idx]] = True
+            elif len(p) == 2:
+                for pi in range(int(p[0]), int(p[1])+1):
+                    idx = pi-1
+                    to_solve[problems[idx]] = True
+            else:
+                print("error: invalid --include range")
+                sys.exit(1)
+    else:
+        for p in problems:
+            to_solve[p] = True
+
+    return to_solve
 
 
 # %% Assign command-line arguments
@@ -51,6 +79,7 @@ else:
 
 s_max = m if args.s_max is None else args.s_max
 s_min = 1 if args.s_min is None else args.s_min
+to_solve = problem_range(args.include)
 
 
 # %% Generate problem instances
@@ -99,245 +128,279 @@ def coherence(A):
 
 
 # %% 1. basis pursuit (l1-minimization)
-avg_bp = []
-avg_bp_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_bp = []
-    ts_elapsed = []
+if 'BP' in to_solve:
+    avg_bp = []
+    avg_bp_ts = []
+    
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_bp = []
+        ts_elapsed = []
+    
+        for x, S in Trial:
+            b  = A @ x
+            ts_start = process_time()
+            xh = algorithms.basis_pursuit(A, b)
+            
+            ts_stop  = process_time()
+            x_fre_bp.append(recovery_error(x, xh))
+            
+            ts_elapsed.append(ts_stop - ts_start)
+    
+        avg_bp.append(np.mean(x_fre_bp))
+        avg_bp_ts.append(np.mean(ts_elapsed))
+    
+        print("n: {}, sparsity: {}, basis pursuit, avg. error: {}".format(n, s, avg_bp[-1]))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_bp_ts[-1]))
 
-    for x, S in Trial:
-        b  = A @ x
-        ts_start = process_time()
-        xh = algorithms.basis_pursuit(A, b)
-        
-        ts_stop  = process_time()
-        x_fre_bp.append(recovery_error(x, xh))
-        
-        ts_elapsed.append(ts_stop - ts_start)
-
-    avg_bp.append(np.mean(x_fre_bp))
-    avg_bp_ts.append(np.mean(ts_elapsed))
-
-    print("n: {}, sparsity: {}, basis pursuit, avg. error: {}".format(n, s, avg_bp[-1]))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_bp_ts[-1]))
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_BP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_bp, 'cputime': avg_bp_ts}, outfile)
+if 'BP' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_BP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_bp, 'cputime': avg_bp_ts}, outfile)
 
     
 # %% 2. orthogonal matching pursuit
-avg_omp = []
-avg_omp_ts = []
-avg_erc = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_omp = []
-    iters_omp = []
-    erc = []
-    ts_elapsed = []
-
-    for x, S in Trial:
-        b = A @ x
-        erc.append(exact_recovery_condition(A, S))
-        ts_start = process_time()
-        xh, conv, iters = algorithms.OMP(A, b, tol_res=tol)
-        
-        ts_stop  = process_time()
-        x_fre_omp.append(recovery_error(x, xh))
-        iters_omp.append(iters)
-        
-        ts_elapsed.append(ts_stop - ts_start)
-
-    avg_omp.append(np.mean(x_fre_omp))
-    avg_omp_ts.append(np.mean(ts_elapsed))
-    avg_erc.append(np.mean(erc))
+if 'OMP' in to_solve:
+    avg_omp = []
+    avg_omp_ts = []
+    avg_erc = []
     
-    print("n: {}, sparsity: {}, OMP, avg. error: {}, avg. ERC: {}, avg. iterations: {}".format(
-        n, s, avg_omp[-1], avg_erc[-1], np.round(np.mean(iters_omp))))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_omp_ts[-1]))
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_omp = []
+        iters_omp = []
+        erc = []
+        ts_elapsed = []
+    
+        for x, S in Trial:
+            b = A @ x
+            erc.append(exact_recovery_condition(A, S))
+            ts_start = process_time()
+            xh, conv, iters = algorithms.OMP(A, b, tol_res=tol)
+            
+            ts_stop  = process_time()
+            x_fre_omp.append(recovery_error(x, xh))
+            iters_omp.append(iters)
+            
+            ts_elapsed.append(ts_stop - ts_start)
+    
+        print(iters_omp)
+        avg_omp.append(np.mean(x_fre_omp))
+        avg_omp_ts.append(np.mean(ts_elapsed))
+        avg_erc.append(np.mean(erc))
+        
+        print("n: {}, sparsity: {}, OMP, avg. error: {}, avg. ERC: {}, avg. iterations: {}".format(
+            n, s, avg_omp[-1], avg_erc[-1], np.round(np.mean(iters_omp))))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_omp_ts[-1]))
+
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_OMP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_omp, 'cputime': avg_omp_ts}, outfile)
+if 'OMP' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_OMP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_omp, 'cputime': avg_omp_ts}, outfile)
 
 
 # %% 3. matching pursuit
-avg_mp = []
-avg_mp_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_mp = []
-    iters_mp = []
-    ts_elapsed = []
-
-    for x, S in Trial:
-        b = A @ x
-        ts_start = process_time()
-        xh, conv, iters = algorithms.MP(A, b, tol_res=tol)
-
-        ts_stop  = process_time()
-        x_fre_mp.append(recovery_error(x, xh))
-        iters_mp.append(iters)
-
-        ts_elapsed.append(ts_stop - ts_start)
-
-    avg_mp.append(np.mean(x_fre_mp))
-    avg_mp_ts.append(np.mean(ts_elapsed))
+if 'MP' in to_solve:
+    avg_mp = []
+    avg_mp_ts = []
     
-    print("n: {}, sparsity: {}, MP, avg. error: {}, avg. iterations: {}".format(
-        n, s, avg_mp[-1], np.round(np.mean(iters_mp))))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_mp_ts[-1]))
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_mp = []
+        iters_mp = []
+        ts_elapsed = []
+    
+        for x, S in Trial:
+            b = A @ x
+            ts_start = process_time()
+            xh, conv, iters = algorithms.MP(A, b, tol_res=tol)
+    
+            ts_stop  = process_time()
+            x_fre_mp.append(recovery_error(x, xh))
+            iters_mp.append(iters)
+    
+            ts_elapsed.append(ts_stop - ts_start)
+    
+        avg_mp.append(np.mean(x_fre_mp))
+        avg_mp_ts.append(np.mean(ts_elapsed))
+        
+        print("n: {}, sparsity: {}, MP, avg. error: {}, avg. iterations: {}".format(
+            n, s, avg_mp[-1], np.round(np.mean(iters_mp))))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_mp_ts[-1]))
+
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_MP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_mp, 'cputime': avg_mp_ts}, outfile)
+if 'MP' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_MP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_mp, 'cputime': avg_mp_ts}, outfile)
 
 
 # %% 4. iterative hard thresholding
-avg_iht = []
-avg_iht_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_iht = []
-    iters_iht = []
-    ts_elapsed = []
+if 'IHT' in to_solve:
+    avg_iht = []
+    avg_iht_ts = []
+    
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_iht = []
+        iters_iht = []
+        ts_elapsed = []
+    
+        for x, S in Trial:
+            b = A @ x
+            ts_start = process_time()
+            xh, conv, iters = algorithms.IHT(A, b, s, adaptive=True, tol_res=tol)
+            
+            ts_stop  = process_time()
+            x_fre_iht.append(recovery_error(x, xh))
+            iters_iht.append(iters)
+            
+            ts_elapsed.append(ts_stop - ts_start)
+    
+        avg_iht.append(np.mean(x_fre_iht))
+        avg_iht_ts.append(np.mean(ts_elapsed))
+    
+        print("n: {}, sparsity: {}, IHT, avg. error: {}, avg. iterations: {}".format(
+            n, s, avg_iht[-1], np.round(np.mean(iters_iht))))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_iht_ts[-1]))
 
-    for x, S in Trial:
-        b = A @ x
-        ts_start = process_time()
-        xh, conv, iters = algorithms.IHT(A, b, s, adaptive=True, tol_res=tol)
-        
-        ts_stop  = process_time()
-        x_fre_iht.append(recovery_error(x, xh))
-        iters_iht.append(iters)
-        
-        ts_elapsed.append(ts_stop - ts_start)
-
-    avg_iht.append(np.mean(x_fre_iht))
-    avg_iht_ts.append(np.mean(ts_elapsed))
-
-    print("n: {}, sparsity: {}, IHT, avg. error: {}, avg. iterations: {}".format(
-        n, s, avg_iht[-1], np.round(np.mean(iters_iht))))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_iht_ts[-1]))
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_IHT.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_iht, 'cputime': avg_iht_ts}, outfile)
+if 'IHT' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_IHT.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_iht, 'cputime': avg_iht_ts}, outfile)
 
 
 # %% 5. compressive sampling matching pursuit
-avg_cosamp = []
-avg_cosamp_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_cosamp = []
-    iters_cosamp = []
-    ts_elapsed = []
+if 'CoSaMP' in to_solve:
+    avg_cosamp = []
+    avg_cosamp_ts = []
     
-    for x, S in Trial:
-        b = A @ x
-        ts_start = process_time()
-        xh, conv, iters = algorithms.CoSaMP(A, b, s, tol_res=tol)
-
-        ts_stop  = process_time()
-        x_fre_cosamp.append(recovery_error(x, xh))
-        iters_cosamp.append(iters)
-
-        ts_elapsed.append(ts_stop - ts_start)
-
-    avg_cosamp.append(np.mean(x_fre_cosamp))
-    avg_cosamp_ts.append(np.mean(ts_elapsed))
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_cosamp = []
+        iters_cosamp = []
+        ts_elapsed = []
+        
+        for x, S in Trial:
+            b = A @ x
+            ts_start = process_time()
+            xh, conv, iters = algorithms.CoSaMP(A, b, s, tol_res=tol)
     
-    print("n: {}, sparsity: {}, CoSaMP, avg. error: {}, avg. iterations: {}".format(
-        n, s, avg_cosamp[-1], np.round(np.mean(iters_cosamp))))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_cosamp_ts[-1]))
+            ts_stop  = process_time()
+            x_fre_cosamp.append(recovery_error(x, xh))
+            iters_cosamp.append(iters)
+    
+            ts_elapsed.append(ts_stop - ts_start)
+    
+        avg_cosamp.append(np.mean(x_fre_cosamp))
+        avg_cosamp_ts.append(np.mean(ts_elapsed))
+        
+        print("n: {}, sparsity: {}, CoSaMP, avg. error: {}, avg. iterations: {}".format(
+            n, s, avg_cosamp[-1], np.round(np.mean(iters_cosamp))))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_cosamp_ts[-1]))
+
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_CoSaMP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_cosamp, 'cputime': avg_cosamp_ts}, outfile)
+if 'CoSaMP' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_CoSaMP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_cosamp, 'cputime': avg_cosamp_ts}, outfile)
 
 
 # %% 6. basic thresholding
-avg_bt = []
-avg_bt_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_bt = []
-    ts_elapsed = []
-
-    for x, S in Trial:
-        b = A @ x
-        ts_start = process_time()
-        xh = algorithms.BT(A, b, s)
-
-        ts_stop  = process_time()
-        x_fre_bt.append(recovery_error(x, xh))
-
-        ts_elapsed.append(ts_stop - ts_start)
-        
-    avg_bt.append(np.mean(x_fre_bt))
-    avg_bt_ts.append(np.mean(ts_elapsed))
+if 'BT' in to_solve:
+    avg_bt = []
+    avg_bt_ts = []
     
-    print("n: {}, sparsity: {}, BT, avg. error: {}".format(n, s, avg_bt[-1]))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_bt_ts[-1]))
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_bt = []
+        ts_elapsed = []
+    
+        for x, S in Trial:
+            b = A @ x
+            ts_start = process_time()
+            xh = algorithms.BT(A, b, s)
+    
+            ts_stop  = process_time()
+            x_fre_bt.append(recovery_error(x, xh))
+    
+            ts_elapsed.append(ts_stop - ts_start)
+            
+        avg_bt.append(np.mean(x_fre_bt))
+        avg_bt_ts.append(np.mean(ts_elapsed))
+        
+        print("n: {}, sparsity: {}, BT, avg. error: {}".format(n, s, avg_bt[-1]))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_bt_ts[-1]))
+
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_BT.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_bt, 'cputime': avg_bt_ts}, outfile)
+if 'BT' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_BT.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_bt, 'cputime': avg_bt_ts}, outfile)
 
 
 # %% 7. hard thresholding pursuit
-avg_htp = []
-avg_htp_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_htp = []
-    iters_htp = []
-    ts_elapsed = []
-
-    for x, S in Trial:
-        b = A @ x
-        ts_start = process_time()
-        xh, conv, iters = algorithms.HTP(A, b, s, tol_res=tol)
-
-        ts_stop  = process_time()
-        x_fre_htp.append(recovery_error(x, xh))
-        iters_htp.append(iters)
-        
-        ts_elapsed.append(ts_stop - ts_start)
-        
-    avg_htp.append(np.mean(x_fre_htp))
-    avg_htp_ts.append(np.mean(ts_elapsed))
+if 'HTP' in to_solve:
+    avg_htp = []
+    avg_htp_ts = []
     
-    print("n: {}, sparsity: {}, HTP, avg. error: {}, avg. iterations: {}".format(
-        n, s, avg_htp[-1], np.round(np.mean(iters_htp))))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_htp_ts[-1]))
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_htp = []
+        iters_htp = []
+        ts_elapsed = []
+    
+        for x, S in Trial:
+            b = A @ x
+            ts_start = process_time()
+            xh, conv, iters = algorithms.HTP(A, b, s, tol_res=tol)
+    
+            ts_stop  = process_time()
+            x_fre_htp.append(recovery_error(x, xh))
+            iters_htp.append(iters)
+            
+            ts_elapsed.append(ts_stop - ts_start)
+            
+        avg_htp.append(np.mean(x_fre_htp))
+        avg_htp_ts.append(np.mean(ts_elapsed))
+        
+        print("n: {}, sparsity: {}, HTP, avg. error: {}, avg. iterations: {}".format(
+            n, s, avg_htp[-1], np.round(np.mean(iters_htp))))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_htp_ts[-1]))
+
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_HTP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_htp, 'cputime': avg_htp_ts}, outfile)
+if 'HTP' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_HTP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_htp, 'cputime': avg_htp_ts}, outfile)
 
 
 # %% 8. subspace pursuit
-avg_sp = []
-avg_sp_ts = []
-for s, Trial in enumerate(trials, start=1):
-    x_fre_sp = []
-    iters_sp = []
-
-    for x, S in Trial:
-        b = A @ x
-        ts_start = process_time()
-        xh, conv, iters = algorithms.SP(A, b, s, tol_res=tol)
-
-        ts_stop = process_time()
-        x_fre_sp.append(recovery_error(x, xh))
-        iters_sp.append(iters)
-        
-        ts_elapsed.append(ts_stop - ts_start)
-
-    avg_sp.append(np.mean(x_fre_sp))
-    avg_sp_ts.append(np.mean(ts_elapsed))
+if 'SP' in to_solve:
+    avg_sp = []
+    avg_sp_ts = []
     
-    print("n: {}, sparsity: {}, SP, avg. error: {}, avg. iterations: {}".format(
-        n, s, avg_sp[-1], np.round(np.mean(iters_sp))))
-    print("avg. CPU time elapsed: {:>2.6f}s".format(avg_sp_ts[-1]))
+    for s, Trial in enumerate(trials, start=1):
+        x_fre_sp = []
+        iters_sp = []
+        ts_elapsed = []
+
+        for x, S in Trial:
+            b = A @ x
+            ts_start = process_time()
+            xh, conv, iters = algorithms.SP(A, b, s, tol_res=tol)
+    
+            ts_stop = process_time()
+            x_fre_sp.append(recovery_error(x, xh))
+            iters_sp.append(iters)
+            
+            ts_elapsed.append(ts_stop - ts_start)
+    
+        avg_sp.append(np.mean(x_fre_sp))
+        avg_sp_ts.append(np.mean(ts_elapsed))
+        
+        print("n: {}, sparsity: {}, SP, avg. error: {}, avg. iterations: {}".format(
+            n, s, avg_sp[-1], np.round(np.mean(iters_sp))))
+        print("avg. CPU time elapsed: {:>2.6f}s".format(avg_sp_ts[-1]))
+
 
 # %%
-with open('{}_m{}_n{}_{}_trials_fre_SP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
-    json.dump({'error': avg_sp, 'cputime': avg_sp_ts}, outfile)
+if 'SP' in to_solve:
+    with open('{}_m{}_n{}_{}_trials_fre_SP.json'.format(mtx_type, m, n, n_repetitions), 'w') as outfile:
+        json.dump({'error': avg_sp, 'cputime': avg_sp_ts}, outfile)

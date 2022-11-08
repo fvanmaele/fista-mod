@@ -522,14 +522,25 @@ def SP(A, b, s, x0=None, max_iter=100, tol_res=None):
         U = np.hstack((np.nonzero(x)[0], np.nonzero(hard_threshold(A.conj().T @ r, s))[0]))
 
         # orthogonal projection
-        u = np.zeros(n, dtype=A.dtype)
-        u[U] = np.linalg.pinv(A[:, U]) @ b
+        # XXX: only place where with TOL = 1e-8 and the generated problems an SVD error occured
+        # in this case, we abort the iteration and return the previous iterate x_k
+        try:
+            u = np.zeros(n, dtype=A.dtype)
+            u[U] = np.linalg.pinv(A[:, U]) @ b
+        except np.linalg.LinAlgError:
+            k = max_iter+1  # TODO: add a special error state to "converged"
+            break
         
         # thresholding and second projection step
         S = np.nonzero(hard_threshold(u, s))[0]
-        x = np.zeros(n, dtype=A.dtype)
 
-        x[S] = np.linalg.pinv(A[:, S]) @ b
+        try:
+            x = np.zeros(n, dtype=A.dtype)
+            x[S] = np.linalg.pinv(A[:, S]) @ b
+        except np.linalg.LinAlgError:
+            k = max_iter+1
+            break
+
         r = b - A@x
         
         # termination criterion

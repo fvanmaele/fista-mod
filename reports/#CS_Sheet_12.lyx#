@@ -1,0 +1,3171 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\argmax}{argmax}
+\end_preamble
+\use_default_options true
+\begin_modules
+theorems-ams
+theorems-ams-extended
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement h
+\paperfontsize default
+\spacing onehalf
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 3cm
+\topmargin 3cm
+\rightmargin 3cm
+\bottommargin 3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Compressed Sensing – Sheet 12
+\end_layout
+
+\begin_layout Author
+Ferdinand Vanmaele
+\end_layout
+
+\begin_layout Exercise
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+mbox{}
+\end_layout
+
+\end_inset
+
+
+\begin_inset Argument 1
+status open
+
+\begin_layout Plain Layout
+Programming project part 1
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+The generation of sensors is done in 
+\family typewriter
+sheet12_ex1/sensors.py
+\family default
+.
+ To make the matrices work with the assumptions of CoSaMP, OMP, SP and MP
+ as defined in the lecture, the columns are normalized.
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Formula $m$
+\end_inset
+
+ rows are drawn uniformly at random (without repetition) by generating a
+ random permutation 
+\begin_inset Formula $S(m)\rightarrow S(m)$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Random 
+\begin_inset Formula $s$
+\end_inset
+
+-sparse vectors 
+\begin_inset Formula $x\in\mathbb{R}^{n}$
+\end_inset
+
+ with 
+\begin_inset Formula $1\leq s\leq m$
+\end_inset
+
+ are constructed in 
+\family typewriter
+sheet12_ex1/main.py
+\family default
+.
+ The 
+\family typewriter
+generate_problems()
+\family default
+ function takes the problem dimension 
+\begin_inset Formula $n$
+\end_inset
+
+ and bounds for 
+\begin_inset Formula $s$
+\end_inset
+
+, as well as the number repetitions for each sparsity value.
+\end_layout
+
+\begin_layout Itemize
+Algorithms are run in 
+\family typewriter
+sheet12_ex1/main.py
+\family default
+.
+ Every algorithm is implemented in its own function
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This is a bit repetitive, especially for closely related algorithms such
+ as CoSaMP and SP.
+ However, every different algorithm to be tested is self-contained in this
+ way.
+ Outside of this exercise, I would likely summarize some functions and add
+ additional parameters.
+\end_layout
+
+\end_inset
+
+ and can be enabled or disabled selectively.
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Remark*
+The following modifications were made:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+A tolerance of 
+\begin_inset Formula $10^{-8}$
+\end_inset
+
+ was chosen te reduce oscillations for different sparsity levels.
+\end_layout
+
+\begin_layout Itemize
+Iterative hard thresholding was implemented with a variable step size [TBDR12],
+ 
+\begin_inset Formula 
+\[
+g:=A^{\ast}r^{(k)},\quad T:=\begin{cases}
+\text{supp}(\mathcal{T}(g,s)) & \text{if }k>0\\
+\text{supp}(\mathcal{T}(x^{(0)},s)) & \text{if }k=0
+\end{cases},\quad\mu:=\frac{\|g_{T}\|_{2}^{2}}{\|A_{T}g_{T}\|_{2}^{2}}
+\]
+
+\end_inset
+
+instead of 
+\begin_inset Formula $\mu=1$
+\end_inset
+
+.
+ In the experiments performed, this was done to avoid divergence with 
+\begin_inset Formula $\mu=1$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Let 
+\begin_inset Formula $\text{RE}(\hat{x}):=\|x-\hat{x}\|_{2}/\|x\|_{2}$
+\end_inset
+
+.
+ We consider successful recovery of a vector of sparsity 
+\begin_inset Formula $1\leq s\leq m$
+\end_inset
+
+ as the maximum 
+\begin_inset Formula $s$
+\end_inset
+
+, such that
+\begin_inset Formula 
+\[
+s_{\max}:=\max_{s}\left\{ \forall s'\leq s:\,\frac{1}{100}\sum_{i\in[100]}\text{RE}(\hat{x}_{s',i})<10^{-6}\right\} 
+\]
+
+\end_inset
+
+holds.
+ Summary of the trials, with 
+\begin_inset Formula $n=128$
+\end_inset
+
+, 
+\begin_inset Formula $m=2^{7}$
+\end_inset
+
+:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="17" columns="5">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Matrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Algorithm
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s_{\max}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\approx\sum\text{RE}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="center" valignment="middle" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Random 
+\series default
+(
+\begin_inset Formula $A$
+\end_inset
+
+)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\ell_{1}$
+\end_inset
+
+-min.
+ (BP)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=17$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-9}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+OMP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=13$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=5$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-9}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+IHT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=10$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-9}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CoSaMP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=14$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+BT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=0$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+HTP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=10$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=15$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="center" valignment="middle" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Fourier 
+\series default
+(
+\begin_inset Formula $F$
+\end_inset
+
+)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\ell_{1}$
+\end_inset
+
+-min.
+ (BP)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=40$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-10}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+OMP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=34$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=10$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-7}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+IHT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=26$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-9}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CoSaMP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=25$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+BT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=0$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+HTP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=26$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $s=31$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $10^{-15}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Conclusions:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Methods using orthogonal projection recover the solution at a high accuracy
+ (close to machine precision) for 
+\begin_inset Formula $1\leq s$
+\end_inset
+
+ sufficiently small.
+ IHT is still competitive in terms of 
+\begin_inset Formula $s_{\max}$
+\end_inset
+
+, with a higher recovery level.
+\end_layout
+
+\begin_layout Itemize
+The recovery error increased steeply from 
+\begin_inset Formula $s_{\max}$
+\end_inset
+
+ to higher levels 
+\begin_inset Formula $s>s_{\max}$
+\end_inset
+
+.
+ Some trials also had oscillatory behavior.
+\end_layout
+
+\begin_layout Itemize
+The Fourier matrix was recovered for higher sparsity levels for all algorithms
+ except Basic Thresholding.
+ The coherence of this matrix is much lower than the Gaussian one (
+\begin_inset Formula $\approx0.08$
+\end_inset
+
+ vs.
+ 
+\begin_inset Formula $\approx1.00$
+\end_inset
+
+) so this is unsurprising.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\ell_{1}$
+\end_inset
+
+-minimization had constant performance for all trials.
+ Methods using orthogonal projection had their CPU time increase exponentially.
+ (See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Combined-CPU-time-Gaussian"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Combined-CPU-time-Fourier"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+)
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/A_m64_n128_100_error.png
+	width 90col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Relative recovery error (
+\begin_inset Formula $y$
+\end_inset
+
+-axis) over 100 trials per sparsity 
+\begin_inset Formula $1\leq s\leq m$
+\end_inset
+
+ (
+\begin_inset Formula $x$
+\end_inset
+
+-axis) for 
+\series bold
+Gaussian
+\series default
+ 
+\series bold
+matrix
+\series default
+ 
+\begin_inset Formula $A\in\mathbb{R}^{64\times128}$
+\end_inset
+
+ with normalized columns.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Relative-recovery-error-Gaussian"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/F_m64_n128_100_error.png
+	width 80col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Relative recovery error (
+\begin_inset Formula $y$
+\end_inset
+
+-axis) averaged over 100 trials, by sparsity level 
+\begin_inset Formula $1\leq s\leq m$
+\end_inset
+
+ (
+\begin_inset Formula $x$
+\end_inset
+
+-axis) for 
+\series bold
+partial Fourier
+\series default
+ 
+\series bold
+matrix
+\series default
+ 
+\begin_inset Formula $F\in\mathbb{R}^{64\times128}$
+\end_inset
+
+ with normalized columns.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Relative-recovery-error-Fourier"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/A_m64_n128_100_cputime.png
+	width 80col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Combined CPU time in seconds per iteration (
+\begin_inset Formula $y$
+\end_inset
+
+-axis) averaged over 100 trials, by sparsity level 
+\begin_inset Formula $1\leq s\leq m$
+\end_inset
+
+ for 
+\series bold
+Gaussian matrix
+\series default
+ 
+\begin_inset Formula $A\in\mathbb{R}^{64\times128}$
+\end_inset
+
+ with normalized columns.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Combined-CPU-time-Gaussian"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/F_m64_n128_100_cputime.png
+	width 80col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Combined CPU time in seconds per iteration (
+\begin_inset Formula $y$
+\end_inset
+
+-axis) averaged over 100 trials, by sparsity level 
+\begin_inset Formula $1\leq s\leq m$
+\end_inset
+
+ for 
+\series bold
+partial Fourier matrix
+\series default
+ 
+\begin_inset Formula $F\in\mathbb{R}^{64\times128}$
+\end_inset
+
+ with normalized columns.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Combined-CPU-time-Fourier"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Exercise
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+mbox{}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Problem definition
+\end_layout
+
+\begin_layout Standard
+The robust face recognition problem is given by
+\begin_inset Formula 
+\[
+\min_{w\in\mathbb{R}^{m+n}}\frac{1}{2}\|Bw-b\|_{2}^{2}+\lambda\|w\|_{1}
+\]
+
+\end_inset
+
+where
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda\in\mathbb{R}_{>0}$
+\end_inset
+
+ is a regularization parameter, 
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+\begin_inset Formula $m'\times n'$
+\end_inset
+
+ 
+\begin_inset Formula $m'n'\times1$
+\end_inset
+
+, 
+\begin_inset Formula $n:=m'n'$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Formula $B=[A\quad I]\in\mathbb{R}^{m\times(m+n)}$
+\end_inset
+
+ with 
+\begin_inset Formula $A\in\mathbb{R}^{m\times n}$
+\end_inset
+
+, 
+\begin_inset Formula $I\in\mathbb{R}^{m\times m}$
+\end_inset
+
+ a highly correlated dictionary of 
+\begin_inset Formula $m$
+\end_inset
+
+ face images 
+\begin_inset Formula $v\in\mathbb{R}^{n}$
+\end_inset
+
+, stacked column-wise;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $I$
+\end_inset
+
+ the identity matrix 
+\begin_inset Formula $\in\mathbb{R}^{n\times n}$
+\end_inset
+
+, 
+\begin_inset Formula $b=Ax+e$
+\end_inset
+
+ a face image to be recognized not in the dictionary 
+\begin_inset Formula $A$
+\end_inset
+
+, with 
+\begin_inset Formula $e\in\mathbb{R}^{n}$
+\end_inset
+
+ an unknown error;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $w$
+\end_inset
+
+ the minimization variable.
+ 
+\end_layout
+
+\begin_layout Standard
+The term 
+\begin_inset Formula $F(w):=\frac{1}{2}\|Bw-b\|_{2}^{2}$
+\end_inset
+
+ is differentiable,
+\begin_inset Formula 
+\begin{equation}
+\nabla F(w)=B^{T}(Bw-b)\label{eq:minimization}
+\end{equation}
+
+\end_inset
+
+with Lipschitz constant 
+\begin_inset Formula $L:=\|B^{T}B\|_{F}$
+\end_inset
+
+,
+\begin_inset Formula 
+\begin{align*}
+\|B^{T}(Bw-b)-B^{T}(Bz-b)\|_{2} & =\|B^{T}Bw-B^{T}b-B^{T}Bz+B^{T}b\|_{2}\\
+ & =\|B^{T}Bw-B^{T}Bz\|_{2}\\
+ & \leq\|B^{T}B\|_{F}\|w-z\|_{2}.
+\end{align*}
+
+\end_inset
+
+The norm 
+\begin_inset Formula $\|w\|_{1}$
+\end_inset
+
+ is proper, convex and lsc and has as proximal operator 
+\series bold
+soft shrinkage
+\series default
+, given component-wise by
+\begin_inset Formula 
+\[
+\left[\text{Prox}_{\gamma\|\cdot\|}(w)\right]_{i}=\begin{cases}
+w_{i}+\gamma & \text{if }w_{i}<\gamma,\\
+0 & \text{if }-\gamma\leq w_{i}\leq\gamma,\\
+w_{i}-\gamma & \text{if }w_{i}>\gamma.
+\end{cases}
+\]
+
+\end_inset
+
+Multiplying by 
+\begin_inset Formula $\lambda>0$
+\end_inset
+
+ we have:
+\begin_inset Formula 
+\begin{align*}
+\left[\text{Prox}_{\gamma R}(w)\right]_{i} & =\lambda^{-1}\left[\text{Prox}_{\lambda^{2}\gamma\|\cdot\|}(\lambda w)\right]_{i}\\
+ & =\begin{cases}
+w_{i}+\lambda\gamma & \text{if }w_{i}<\lambda\gamma,\\
+0 & \text{if }-\lambda\gamma\leq w_{i}\leq\lambda\gamma,\\
+w_{i}-\lambda\gamma & \text{if }w_{i}>\lambda\gamma.
+\end{cases}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The non-zero entries of 
+\begin_inset Formula $x_{\ast}$
+\end_inset
+
+ in the solution 
+\begin_inset Formula $w_{\ast}=[x_{\ast}^{T},e_{\ast}^{T}]^{T}$
+\end_inset
+
+ of problem (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:minimization"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) represent the person the image belongs to.
+\end_layout
+
+\begin_layout Remark*
+When we consider images without noise, we have the optimization problem
+\begin_inset Formula 
+\begin{equation}
+\min_{x\in\mathbb{R}^{m}}\frac{1}{2}\|Ax-b\|_{2}^{2}+\lambda\|x\|_{1}\label{eq:basis-pursuit}
+\end{equation}
+
+\end_inset
+
+with gradient 
+\begin_inset Formula $\nabla F(w)=A^{T}(Ax-b)$
+\end_inset
+
+ and proximal operator as above.
+ The non-zero entries of the solution 
+\begin_inset Formula $x_{\ast}$
+\end_inset
+
+ represent the person the image belongs to.
+ In pratice this can only hold approximately, and we look instead at the
+ vector 
+\begin_inset Formula 
+\[
+x_{\downarrow}=(x{}_{[1]},x{}_{[2]},\dots),\quad x{}_{[1]}\geq x{}_{[2]}\geq\cdots
+\]
+
+\end_inset
+
+ of sorted by absolute magnitude of its elements.
+\end_layout
+
+\end_deeper
+\begin_layout Subsection*
+Face recognition data set
+\end_layout
+
+\begin_layout Standard
+We assemble the dictionary 
+\begin_inset Formula $A$
+\end_inset
+
+ as follows.
+ The baseline is the 
+\emph on
+Labeled Faces in the Wild
+\emph default
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+https://www.kaggle.com/datasets/jessicali9530/lfw-dataset
+\end_layout
+
+\end_inset
+
+ (LFW) dataset, with each image of size 
+\begin_inset Formula $(250,250)$
+\end_inset
+
+.
+ Images in this dataset are aligned, but not cropped so that background
+ details (and potentially multiple faces) are visible.
+ In a first attempt, 
+\begin_inset Formula $A$
+\end_inset
+
+ is constructed by randomly selecting 508 persons from this dataset which
+ have at least 5 images available.
+ Then, 4 images are selected randomly to construct A (training set), and
+ 1 image is selected randomly for the complement for the reconstruction
+ (verification set).
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=Python,numbers=left,numberstyle={\scriptsize},basicstyle={\small},breaklines=true,tabsize=4,frame=simple"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+for person in people:
+\end_layout
+
+\begin_layout Plain Layout
+
+    # reduce number of people in data set for performance reasons
+\end_layout
+
+\begin_layout Plain Layout
+
+    dice_roll = np.random.choice([1,2,3,4,5,6])
+\end_layout
+
+\begin_layout Plain Layout
+
+    if dice_roll == 1 or dice_roll == 3:
+\end_layout
+
+\begin_layout Plain Layout
+
+        idx = people[person]
+\end_layout
+
+\begin_layout Plain Layout
+
+    
+\end_layout
+
+\begin_layout Plain Layout
+
+        if len(idx) >= min_samples:
+\end_layout
+
+\begin_layout Plain Layout
+
+            idx_train = np.random.choice(idx, num_train)
+\end_layout
+
+\begin_layout Plain Layout
+
+            idx_verif = np.random.choice(np.setdiff1d(idx, idx_train), num_verif)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            training_set[person] = idx_train
+\end_layout
+
+\begin_layout Plain Layout
+
+            verification_set[person] = idx_verif
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The parameters for FISTA-Mod were chosen as follows: 
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda=10^{-3}$
+\end_inset
+
+ and 
+\begin_inset Formula $x_{0}=0\in\mathbb{R}^{n+m}$
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $TOL=10^{-7}$
+\end_inset
+
+ where the algorithm terminates if 
+\begin_inset Formula $\|x^{(k-1)}-x^{(k)}\|<TOL$
+\end_inset
+
+ or 5000 iterations were exceeded.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $p=\frac{1}{20}$
+\end_inset
+
+, 
+\begin_inset Formula $q=\frac{1}{2}$
+\end_inset
+
+, 
+\begin_inset Formula $r=4$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For recognizing original images (that is, images with no noise added), FISTA-Mod
+ applied to problem (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:basis-pursuit"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) could not uniquely recover a sample from the verification set, even though
+ the sequence 
+\begin_inset Formula $\{x^{(k)}\}$
+\end_inset
+
+ converged.
+ See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:uncropped-results"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The cause was likely images having more than a single face available or
+ other background artifacts.
+ See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:uncropped-results"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:convergence-uncropped"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "b"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-07 222229.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Original
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-07 222319.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $Bx^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-07 222323.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{x^{\ast}{}_{[1]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename images/Figure 2022-11-07 222328.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{x^{\ast}{}_{[2]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename images/Figure 2022-11-07 222331.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{x^{\ast}{}_{[3]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Recovered images for uncropped 250x250 sample
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:uncropped-results"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/fista_mod_uncropped.jpg
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/fista_mod_uncropped_norm_diff.jpg
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Differences 
+\begin_inset Formula $J(x^{(k)})-J(x^{(k-1)})$
+\end_inset
+
+ and 
+\begin_inset Formula $\|x^{(k)}-x^{(k-1)}\|$
+\end_inset
+
+ by number of iterations
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Convergence and values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+ for uncropped 250x250 sample and 
+\begin_inset Formula $\lambda=10^{-3}$
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:convergence-uncropped"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To address this, the images were cropped to regions containing a face using
+ cascade classifiers.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+https://docs.opencv.org/3.4/db/d28/tutorial_cascade_classifier.html
+\end_layout
+
+\end_inset
+
+ Since the resulting images had different sizes, all samples below 100 pixels
+ and above 130 pixels height and width were removed.
+ The rest were then resized to 130 pixels height and width.
+ The final training set contained 776 images, so that 
+\begin_inset Formula $A\in\mathbb{R}^{16900\times776}$
+\end_inset
+
+, and an image from the verification set containing 245 items was selected.
+ This time around, the algorithm managed to recognize the person belonging
+ to given sample 
+\begin_inset Formula $b$
+\end_inset
+
+.
+ The parameter 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ was increased to 
+\begin_inset Formula $\lambda=1$
+\end_inset
+
+, and the tolerance lowered to 
+\begin_inset Formula $TOL=10^{-4}$
+\end_inset
+
+ with a maximum of 5000 iterations.
+ See Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:cropped-results"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:convergence-cropped"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "b"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 015303.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Original
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 015802.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $Bx^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 015511.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[1]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 015514.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[2]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "20col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 015518.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $B_{|x^{\ast}|_{[3]}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Recovered images for cropped 130x130 sample and 
+\begin_inset Formula $\lambda=1$
+\end_inset
+
+ 
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:cropped-results"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 015440.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "50col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename images/Figure 2022-11-08 020308.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Differences 
+\begin_inset Formula $J(x^{(k)})-J(x^{(k-1)})$
+\end_inset
+
+ and 
+\begin_inset Formula $\|x^{(k)}-x^{(k-1)}\|$
+\end_inset
+
+ by number of iterations
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Convergence and values of 
+\begin_inset Formula $x^{\ast}$
+\end_inset
+
+ for cropped 130x130 sample and 
+\begin_inset Formula $\lambda=1$
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:convergence-cropped"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Conclusion*
+FISTA-Mod applied to the face recognition problem managed to recognize a
+ sample, provided a clear image of the same person is available in the dictionar
+y 
+\begin_inset Formula $A$
+\end_inset
+
+ is available.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+Clear image
+\begin_inset Quotes erd
+\end_inset
+
+ implies a fair amount of preprocessing required: alignment (
+\begin_inset Quotes eld
+\end_inset
+
+funneling
+\begin_inset Quotes erd
+\end_inset
+
+) as provided by the LFW dataset, and cropping with cascade classifiers
+ so that background details are not considered.
+\end_layout
+
+\end_body
+\end_document

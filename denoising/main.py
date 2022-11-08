@@ -9,7 +9,6 @@ import numpy as np
 from skimage import io
 from skimage.color import rgb2gray
 from skimage.util import random_noise
-from skimage.transform import resize
 
 from glob import glob
 import json
@@ -74,9 +73,9 @@ def experiment(orig, noisy, gen, F=None, R=None, tol_sol=-1):
 
 
 # %%
-def main_denoising(imfile, id, methods, sigma, max_iter, tol, rsize=(256, 256), **kwargs):
+def main_denoising(imfile, id, methods, sigma, max_iter, tol, **kwargs):
     # Load images
-    image = resize(rgb2gray(io.imread(imfile)), rsize, anti_aliasing=True)
+    image = rgb2gray(io.imread(imfile))
     nx, ny = np.shape(image)
     plt.imsave('image{}.png'.format(id), image, cmap='gray')
 
@@ -147,11 +146,9 @@ if __name__ == "__main__":
     parser.add_argument("n_images", type=int, help="number of images denoised")
 
     # optional arguments
-    parser.add_argument("--tol",            type=float,     default=1e-8,   help="threshold for difference ||x{k} - x{k-1}||")
+    parser.add_argument("--tol",            type=float,     default=1e-6,   help="threshold for difference ||x{k} - x{k-1}||")
     parser.add_argument("--sigma",          type=float,     default=0.06,   help="value of the regularization parameter")
     parser.add_argument("--max-iter",       type=int,       default=5000,   help="maximum number of iterations for each method")
-    parser.add_argument("--nx",             type=int,       default=256,    help="size to resize input images to")
-    parser.add_argument("--ny",             type=int,       default=256,    help="size to resize input images to")
     parser.add_argument("--seed",           type=int,       default=None,   help="value for np.random.seed()")
     
     # options to control noise adedd to images

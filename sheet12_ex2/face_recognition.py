@@ -70,6 +70,7 @@ def face_recognition(train_set, imsize, robust=False):
     BtB = B.T @ B
     if sparse.issparse(B):
         L = sparse.linalg.norm(BtB)
+        B = sparse.csc_matrix(B)  # XXX: mmread reads coo_matrix
     else:
         L = np.linalg.norm(BtB)
 
